@@ -20,6 +20,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!lesson) return Response.json({ error: "Lesson not found" }, { status: 404 });
 
   const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+
+  function editDistance(a: string, b: string): number {
+    const m = a.length, n = b.length;
+    const dp = Array.from({ length: m + 1 }, (_, i) =>
+      Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+    );
+    for (let i = 1; i <= m; i++)
+      for (let j = 1; j <= n; j++)
+        dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+  }
+
+  function fuzzyMatch(a: string | null | undefined, b: string): boolean {
+    const na = norm(a), nb = norm(b);
+    if (na === nb) return true;
+    if (na.length < 2 || nb.length < 2) return false;
+    const ratio = Math.min(na.length, nb.length) / Math.max(na.length, nb.length);
+    if (ratio >= 0.6 && (na.includes(nb) || nb.includes(na))) return true;
+    return editDistance(na, nb) <= (Math.max(na.length, nb.length) <= 6 ? 1 : 2);
+  }
+
   const resolveCorrect = (q: QuizQuestion): string => {
     const opts: string[] = Array.isArray(q.options) ? q.options : [];
     const direct = opts.find((o) => norm(o) === norm(q.correct));
@@ -30,10 +51,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!isNaN(numIdx) && opts[numIdx]) return opts[numIdx];
     return q.correct;
   };
+
   const quiz = lesson.quiz as unknown as QuizQuestion[];
   const results = quiz.map((q, i) => {
     const correct = resolveCorrect(q);
-    return { correct: norm(selected[i]) === norm(correct), expected: correct };
+    const opts: string[] = Array.isArray(q.options) ? q.options : [];
+    const isOpenEnded = opts.length === 0 && q.type !== "true_false";
+    const isCorrect = isOpenEnded
+      ? fuzzyMatch(selected[i], correct)
+      : norm(selected[i]) === norm(correct);
+    return { correct: isCorrect, expected: correct };
   });
   const correctCount = results.filter((r) => r.correct).length;
   const score = quiz.length ? Math.round((correctCount / quiz.length) * 100) : 0;

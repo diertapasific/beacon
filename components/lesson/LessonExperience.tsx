@@ -282,6 +282,28 @@ function LessonCardView({ lesson, onReady }: { lesson: LessonContent; onReady: (
 
 const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
 
+function editDistance(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function fuzzyMatch(a: string | null | undefined, b: string): boolean {
+  const na = norm(a), nb = norm(b);
+  if (na === nb) return true;
+  if (na.length < 2 || nb.length < 2) return false;
+  // Substring match (handles plurals, word extensions) with length ratio guard
+  const ratio = Math.min(na.length, nb.length) / Math.max(na.length, nb.length);
+  if (ratio >= 0.6 && (na.includes(nb) || nb.includes(na))) return true;
+  // Typo tolerance: 1 char for short, 2 for longer
+  return editDistance(na, nb) <= (Math.max(na.length, nb.length) <= 6 ? 1 : 2);
+}
+
 function resolveCorrect(q: QuizQuestion, opts: string[]): string {
   // Direct match (ideal case)
   const direct = opts.find((o) => norm(o) === norm(q.correct));
@@ -320,7 +342,9 @@ function QuizCard({
 
   const isOpenEnded = options.length === 0;
   const correct = resolveCorrect(question, options);
-  const gotItRight = norm(selected) === norm(correct);
+  const gotItRight = isOpenEnded
+    ? fuzzyMatch(selected, correct)
+    : norm(selected) === norm(correct);
 
   return (
     <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 sm:p-6">
