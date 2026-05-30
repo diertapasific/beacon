@@ -111,7 +111,8 @@ export function OnboardingWizard() {
       </div>
 
       <div className="flex-1 grid place-items-center px-4 sm:px-6 py-8">
-        <div className="w-full max-w-2xl overflow-hidden">
+        <div className="w-full max-w-2xl">
+          <div className="overflow-hidden">
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
               key={step}
@@ -208,6 +209,7 @@ export function OnboardingWizard() {
               )}
             </motion.div>
           </AnimatePresence>
+          </div>
 
           <div className="mt-8 flex items-center justify-between">
             {step > 0 ? (
