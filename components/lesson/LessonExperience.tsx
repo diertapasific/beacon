@@ -264,6 +264,21 @@ function LessonCardView({ lesson, onReady }: { lesson: LessonContent; onReady: (
   );
 }
 
+const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+
+function resolveCorrect(q: QuizQuestion, opts: string[]): string {
+  // Direct match (ideal case)
+  const direct = opts.find((o) => norm(o) === norm(q.correct));
+  if (direct) return direct;
+  // Letter index: "A"→0, "B"→1, "C"→2, "D"→3
+  const letterIdx = ["a", "b", "c", "d"].indexOf(norm(q.correct));
+  if (letterIdx !== -1 && opts[letterIdx]) return opts[letterIdx];
+  // Numeric index: "1"→0, "2"→1, etc.
+  const numIdx = parseInt(q.correct, 10) - 1;
+  if (!isNaN(numIdx) && opts[numIdx]) return opts[numIdx];
+  return q.correct;
+}
+
 function QuizCard({
   question,
   index,
@@ -276,7 +291,16 @@ function QuizCard({
   onSelect: (option: string) => void;
 }) {
   const answered = selected !== null;
-  const gotItRight = selected === question.correct;
+
+  const options =
+    question.options?.length
+      ? question.options
+      : question.type === "true_false"
+      ? ["True", "False"]
+      : [];
+
+  const correct = resolveCorrect(question, options);
+  const gotItRight = norm(selected) === norm(correct);
 
   return (
     <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 sm:p-6">
@@ -285,9 +309,9 @@ function QuizCard({
         <span>{question.question}</span>
       </p>
       <div className="mt-4 grid gap-2.5">
-        {question.options.map((option) => {
-          const isCorrect = option === question.correct;
-          const isChosen = option === selected;
+        {options.map((option) => {
+          const isCorrect = norm(option) === norm(correct);
+          const isChosen = norm(option) === norm(selected);
           let style = "border-zinc-200 bg-white hover:border-zinc-300";
           let icon = null;
           if (answered) {

@@ -19,11 +19,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const lesson = await prisma.lesson.findUnique({ where: { id } });
   if (!lesson) return Response.json({ error: "Lesson not found" }, { status: 404 });
 
+  const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+  const resolveCorrect = (q: QuizQuestion): string => {
+    const opts: string[] = Array.isArray(q.options) ? q.options : [];
+    const direct = opts.find((o) => norm(o) === norm(q.correct));
+    if (direct) return direct;
+    const letterIdx = ["a", "b", "c", "d"].indexOf(norm(q.correct));
+    if (letterIdx !== -1 && opts[letterIdx]) return opts[letterIdx];
+    const numIdx = parseInt(q.correct, 10) - 1;
+    if (!isNaN(numIdx) && opts[numIdx]) return opts[numIdx];
+    return q.correct;
+  };
   const quiz = lesson.quiz as unknown as QuizQuestion[];
-  const results = quiz.map((q, i) => ({
-    correct: selected[i] === q.correct,
-    expected: q.correct,
-  }));
+  const results = quiz.map((q, i) => {
+    const correct = resolveCorrect(q);
+    return { correct: norm(selected[i]) === norm(correct), expected: correct };
+  });
   const correctCount = results.filter((r) => r.correct).length;
   const score = quiz.length ? Math.round((correctCount / quiz.length) * 100) : 0;
   const passed = score >= PASS_THRESHOLD;
