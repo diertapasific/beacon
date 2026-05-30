@@ -71,6 +71,7 @@ export function LessonExperience({
     () => lesson.quiz.map(() => null)
   );
   const [submitting, setSubmitting] = useState(false);
+  const [graded, setGraded] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [achievementIndex, setAchievementIndex] = useState(0);
 
@@ -78,7 +79,7 @@ export function LessonExperience({
   const allAnswered = answers.every((a) => a !== null);
 
   function selectAnswer(qIndex: number, option: string) {
-    if (submitting) return;
+    if (submitting || graded) return;
     setAnswers((prev) => {
       const next = [...prev];
       next[qIndex] = option;
@@ -96,27 +97,32 @@ export function LessonExperience({
       });
       const data: SubmitResult = await res.json();
       setResult(data);
-      setPhase("result");
-      if (data.passed && data.leveledUp) {
-        setTimeout(
-          () =>
-            confetti({
-              particleCount: 160,
-              spread: 100,
-              origin: { y: 0.5 },
-              colors: ["#f59e0b", "#fbbf24", "#1c1917", "#fde68a"],
-            }),
-          250
-        );
-      }
+      setGraded(true); // stay on quiz to show per-question feedback
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function showResult() {
+    setPhase("result");
+    if (result?.passed && result?.leveledUp) {
+      setTimeout(
+        () =>
+          confetti({
+            particleCount: 160,
+            spread: 100,
+            origin: { y: 0.5 },
+            colors: ["#f59e0b", "#fbbf24", "#1c1917", "#fde68a"],
+          }),
+        250
+      );
     }
   }
 
   function retry() {
     setAnswers(lesson.quiz.map(() => null));
     setResult(null);
+    setGraded(false);
     setPhase("lesson");
   }
 
@@ -181,26 +187,35 @@ export function LessonExperience({
                       question={q}
                       index={i}
                       selected={answers[i]}
-                      submitted={submitting}
+                      submitted={graded}
                       onSelect={(opt) => selectAnswer(i, opt)}
                     />
                   </motion.div>
                 ))}
               </div>
               <motion.div variants={item} className="mt-8">
-                <Button
-                  onClick={submit}
-                  size="lg"
-                  className="w-full"
-                  disabled={!allAnswered || submitting}
-                >
-                  {submitting ? "Checking…" : "Submit answers"}
-                  {!submitting && <ArrowRight size={18} weight="bold" />}
-                </Button>
-                {!allAnswered && (
-                  <p className="mt-2 text-center text-xs text-zinc-400">
-                    Answer every question to submit
-                  </p>
+                {graded && result ? (
+                  <Button onClick={showResult} size="lg" className="w-full">
+                    {result.passed ? "See your score" : "See results"}
+                    <ArrowRight size={18} weight="bold" />
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      onClick={submit}
+                      size="lg"
+                      className="w-full"
+                      disabled={!allAnswered || submitting}
+                    >
+                      {submitting ? "Checking…" : "Submit answers"}
+                      {!submitting && <ArrowRight size={18} weight="bold" />}
+                    </Button>
+                    {!allAnswered && (
+                      <p className="mt-2 text-center text-xs text-zinc-400">
+                        Answer every question to submit
+                      </p>
+                    )}
+                  </>
                 )}
               </motion.div>
             </motion.div>
