@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const lesson = await prisma.lesson.findUnique({ where: { id } });
   if (!lesson) return Response.json({ error: "Lesson not found" }, { status: 404 });
 
-  const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+  const norm = (s: unknown) => String(s ?? "").trim().toLowerCase();
 
   function editDistance(a: string, b: string): number {
     const m = a.length, n = b.length;

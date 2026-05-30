@@ -279,7 +279,7 @@ function LessonCardView({ lesson, onReady }: { lesson: LessonContent; onReady: (
   );
 }
 
-const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+const norm = (s: unknown) => String(s ?? "").trim().toLowerCase();
 
 function editDistance(a: string, b: string): number {
   const m = a.length, n = b.length;
