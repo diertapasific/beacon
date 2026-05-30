@@ -78,7 +78,7 @@ export function LessonExperience({
   const allAnswered = answers.every((a) => a !== null);
 
   function selectAnswer(qIndex: number, option: string) {
-    if (answers[qIndex] !== null) return; // lock once answered
+    if (submitting) return;
     setAnswers((prev) => {
       const next = [...prev];
       next[qIndex] = option;
@@ -181,6 +181,7 @@ export function LessonExperience({
                       question={q}
                       index={i}
                       selected={answers[i]}
+                      submitted={submitting}
                       onSelect={(opt) => selectAnswer(i, opt)}
                     />
                   </motion.div>
@@ -283,14 +284,16 @@ function QuizCard({
   question,
   index,
   selected,
+  submitted,
   onSelect,
 }: {
   question: QuizQuestion;
   index: number;
   selected: string | null;
+  submitted: boolean;
   onSelect: (option: string) => void;
 }) {
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(selected ?? "");
   const answered = selected !== null;
 
   const options =
@@ -304,10 +307,6 @@ function QuizCard({
   const correct = resolveCorrect(question, options);
   const gotItRight = norm(selected) === norm(correct);
 
-  function confirmDraft() {
-    if (draft.trim()) onSelect(draft.trim());
-  }
-
   return (
     <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 sm:p-6">
       <p className="flex gap-2 text-base font-semibold text-ink">
@@ -316,7 +315,7 @@ function QuizCard({
       </p>
       <div className="mt-4 grid gap-2.5">
         {isOpenEnded ? (
-          answered ? (
+          submitted ? (
             <div className={`rounded-xl border px-4 py-3 text-sm flex items-center justify-between gap-3 ${
               gotItRight
                 ? "border-emerald-400 bg-emerald-50 text-emerald-800"
@@ -328,25 +327,14 @@ function QuizCard({
                 : <X size={16} weight="bold" className="text-rose-600" />}
             </div>
           ) : (
-            <div className="flex gap-2">
-              <input
-                autoFocus={index === 0}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && confirmDraft()}
-                placeholder="Type your answer…"
-                className="flex-1 h-11 rounded-xl border border-zinc-200 bg-white px-4 text-sm
-                  text-ink placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
-              />
-              <button
-                onClick={confirmDraft}
-                disabled={!draft.trim()}
-                className="h-11 px-4 rounded-xl bg-accent-400 text-ink text-sm font-semibold
-                  disabled:opacity-40 hover:bg-accent-400/90 transition-colors"
-              >
-                <Check size={16} weight="bold" />
-              </button>
-            </div>
+            <input
+              autoFocus={index === 0}
+              value={draft}
+              onChange={(e) => { setDraft(e.target.value); onSelect(e.target.value); }}
+              placeholder="Type your answer…"
+              className="w-full h-11 rounded-xl border border-zinc-200 bg-white px-4 text-sm
+                text-ink placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
+            />
           )
         ) : (
           options.map((option) => {
@@ -354,7 +342,9 @@ function QuizCard({
             const isChosen = norm(option) === norm(selected);
             let style = "border-zinc-200 bg-white hover:border-zinc-300";
             let icon = null;
-            if (answered) {
+            if (isChosen && !submitted) {
+              style = "border-accent-400 bg-accent-50 ring-2 ring-accent-400/30";
+            } else if (submitted) {
               if (isCorrect) {
                 style = "border-emerald-400 bg-emerald-50 text-emerald-800";
                 icon = <Check size={16} weight="bold" className="text-emerald-600" />;
@@ -362,15 +352,15 @@ function QuizCard({
                 style = "border-rose-400 bg-rose-50 text-rose-800";
                 icon = <X size={16} weight="bold" className="text-rose-600" />;
               } else {
-                style = "border-zinc-200 bg-white opacity-60";
+                style = "border-zinc-200 bg-white opacity-50";
               }
             }
             return (
               <motion.button
                 key={option}
                 onClick={() => onSelect(option)}
-                disabled={answered}
-                animate={answered && isChosen && !isCorrect ? { x: [-6, 6, -5, 5, 0] } : {}}
+                disabled={submitted}
+                animate={submitted && isChosen && !isCorrect ? { x: [-6, 6, -5, 5, 0] } : {}}
                 transition={{ duration: 0.4 }}
                 className={`flex items-center justify-between gap-3 text-left rounded-xl border px-4 py-3
                   text-sm transition-colors disabled:cursor-default ${style}`}
@@ -383,7 +373,7 @@ function QuizCard({
         )}
       </div>
       <AnimatePresence>
-        {answered && (
+        {answered && submitted && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
