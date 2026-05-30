@@ -60,7 +60,14 @@ Return ONLY a valid JSON object (no markdown, no explanation) with this EXACT st
 
 Lesson "type" must be one of: concept_card, analogy, code_snippet, myth_vs_reality, did_you_know, flashcard (vary them).
 Quiz "type" must be one of: multiple_choice, true_false, fill_blank, matching, sequence, spot_the_bug (vary them).
-For every quiz question, "correct" must exactly match one of the strings in "options".
+
+Format rules per type (STRICT — follow exactly):
+- multiple_choice: "options" = 4 answer strings. "correct" = full text of one option, copied exactly.
+- true_false: "options" = ["True","False"]. "correct" = "True" or "False".
+- fill_blank: "question" has a blank shown as ___. "options" = []. "correct" = the word/phrase that fills the blank.
+- matching: "options" = [term1, term2, term3, def1, def2, def3] — first half terms, second half definitions, equal count. "correct" = "term1:def1,term2:def2,term3:def3" using colon pairs separated by commas.
+- sequence: "options" = steps in SCRAMBLED order. "correct" = steps joined by "|" in the CORRECT order, using the exact same strings as in options.
+- spot_the_bug: "question" contains a short code snippet with a bug. "options" = 4 strings describing where/what the bug is. "correct" = full text of the correct option.
 `;
 }
 

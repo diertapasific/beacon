@@ -75,7 +75,7 @@ export function LessonExperience({
   const [achievementIndex, setAchievementIndex] = useState(0);
 
   const progressPct = Math.round((lessonNumber / totalLessons) * 100);
-  const allAnswered = answers.every((a) => a !== null);
+  const allAnswered = answers.every((a) => a !== null && a !== "");
 
   function selectAnswer(qIndex: number, option: string) {
     if (submitting || graded) return;
@@ -329,6 +329,29 @@ function QuizCard({
   submitted: boolean;
   onSelect: (option: string) => void;
 }) {
+  if (question.type === "matching") {
+    return (
+      <MatchingCard
+        question={question}
+        index={index}
+        selected={selected}
+        submitted={submitted}
+        onSelect={onSelect}
+      />
+    );
+  }
+  if (question.type === "sequence") {
+    return (
+      <SequenceCard
+        question={question}
+        index={index}
+        selected={selected}
+        submitted={submitted}
+        onSelect={onSelect}
+      />
+    );
+  }
+
   const [draft, setDraft] = useState(selected ?? "");
   const answered = selected !== null;
 
@@ -423,6 +446,225 @@ function QuizCard({
               }`}
             >
               <span className="font-semibold">{gotItRight ? "Correct. " : "Not quite. "}</span>
+              {question.explanation}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Matching ──────────────────────────────────────────────────────────────────
+function MatchingCard({
+  question, index, selected, submitted, onSelect,
+}: {
+  question: QuizQuestion; index: number; selected: string | null;
+  submitted: boolean; onSelect: (answer: string) => void;
+}) {
+  const opts = Array.isArray(question.options) ? question.options.map(String) : [];
+  const half = Math.floor(opts.length / 2);
+  const terms = opts.slice(0, half);
+  const defs  = opts.slice(half);
+
+  // pairs: { [term]: def }
+  const [pairs, setPairs] = useState<Record<string, string>>(() => {
+    if (selected) {
+      return Object.fromEntries(
+        selected.split(",").map((p) => p.split(":").map(String) as [string, string])
+      );
+    }
+    return {};
+  });
+  const [activeTerm, setActiveTerm] = useState<string | null>(null);
+
+  const correctPairs = Object.fromEntries(
+    String(question.correct ?? "").split(",").map((p) => {
+      const [t, d] = p.split(":").map((s) => s.trim());
+      return [norm(t), norm(d)];
+    })
+  );
+
+  function pickTerm(term: string) {
+    if (submitted) return;
+    setActiveTerm((prev) => (prev === term ? null : term));
+  }
+
+  function pickDef(def: string) {
+    if (submitted || !activeTerm) return;
+    const next = { ...pairs, [activeTerm]: def };
+    setPairs(next);
+    setActiveTerm(null);
+    if (Object.keys(next).length === terms.length) {
+      onSelect(Object.entries(next).map(([t, d]) => `${t}:${d}`).join(","));
+    }
+  }
+
+  function isPairCorrect(term: string) {
+    return submitted && norm(pairs[term]) === correctPairs[norm(term)];
+  }
+
+  return (
+    <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 sm:p-6">
+      <p className="flex gap-2 text-base font-semibold text-ink mb-4">
+        <span className="font-mono text-accent-600">{index + 1}.</span>
+        <span>{question.question}</span>
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Terms</p>
+          {terms.map((term) => {
+            const isActive = activeTerm === term;
+            const matched  = !!pairs[term];
+            const correct  = isPairCorrect(term);
+            const wrong    = submitted && matched && !correct;
+            return (
+              <button
+                key={term}
+                onClick={() => pickTerm(term)}
+                disabled={submitted}
+                className={`text-left rounded-xl border px-3 py-2.5 text-sm font-medium transition-all
+                  ${isActive ? "border-accent-400 bg-accent-50 ring-2 ring-accent-400/30"
+                    : correct ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                    : wrong   ? "border-rose-400 bg-rose-50 text-rose-800"
+                    : matched ? "border-zinc-300 bg-zinc-50"
+                    : "border-zinc-200 bg-white hover:border-zinc-300"}`}
+              >
+                {term}
+                {matched && !submitted && <span className="ml-2 text-xs text-zinc-400">→ {pairs[term]}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Definitions</p>
+          {defs.map((def) => {
+            const taken = Object.values(pairs).includes(def);
+            return (
+              <button
+                key={def}
+                onClick={() => pickDef(def)}
+                disabled={submitted || (!activeTerm && !taken)}
+                className={`text-left rounded-xl border px-3 py-2.5 text-sm transition-all
+                  ${activeTerm ? "border-accent-300 bg-accent-50/50 hover:border-accent-400 hover:bg-accent-50"
+                    : taken ? "border-zinc-200 bg-zinc-100 opacity-50"
+                    : "border-zinc-200 bg-white"}`}
+              >
+                {def}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {!submitted && terms.length > 0 && Object.keys(pairs).length < terms.length && (
+        <p className="mt-3 text-xs text-zinc-400">
+          {activeTerm ? `Now pick the definition for "${activeTerm}"` : "Click a term to start matching"}
+        </p>
+      )}
+      <AnimatePresence>
+        {selected && submitted && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
+            <p className={`mt-3 text-sm leading-relaxed ${
+              Object.keys(pairs).every(isPairCorrect) ? "text-emerald-700" : "text-zinc-600"
+            }`}>
+              <span className="font-semibold">
+                {Object.keys(pairs).every(isPairCorrect) ? "Correct. " : "Not quite. "}
+              </span>
+              {question.explanation}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Sequence ──────────────────────────────────────────────────────────────────
+function SequenceCard({
+  question, index, selected, submitted, onSelect,
+}: {
+  question: QuizQuestion; index: number; selected: string | null;
+  submitted: boolean; onSelect: (answer: string) => void;
+}) {
+  const opts = Array.isArray(question.options) ? question.options.map(String) : [];
+  const correctOrder = String(question.correct ?? "").split("|").map((s) => s.trim());
+
+  const [order, setOrder] = useState<string[]>(() =>
+    selected ? selected.split("|") : []
+  );
+  const remaining = opts.filter((o) => !order.includes(o));
+
+  function pick(item: string) {
+    if (submitted) return;
+    const next = [...order, item];
+    setOrder(next);
+    if (next.length === opts.length) onSelect(next.join("|"));
+  }
+
+  function unpick(item: string) {
+    if (submitted) return;
+    setOrder((prev) => prev.filter((o) => o !== item));
+    onSelect(""); // clear answer so Submit stays disabled
+  }
+
+  const isCorrect = order.length === correctOrder.length &&
+    order.every((o, i) => norm(o) === norm(correctOrder[i]));
+
+  return (
+    <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 sm:p-6">
+      <p className="flex gap-2 text-base font-semibold text-ink mb-4">
+        <span className="font-mono text-accent-600">{index + 1}.</span>
+        <span>{question.question}</span>
+      </p>
+
+      {order.length > 0 && (
+        <div className="flex flex-col gap-2 mb-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Your order</p>
+          {order.map((item, i) => {
+            const correct = submitted && norm(item) === norm(correctOrder[i]);
+            const wrong   = submitted && norm(item) !== norm(correctOrder[i]);
+            return (
+              <div key={item} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm
+                ${correct ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                  : wrong ? "border-rose-400 bg-rose-50 text-rose-800"
+                  : "border-accent-200 bg-accent-50"}`}
+              >
+                <span className="font-mono text-xs font-bold text-accent-600 shrink-0">{i + 1}</span>
+                <span className="flex-1">{item}</span>
+                {!submitted && (
+                  <button onClick={() => unpick(item)} className="text-zinc-400 hover:text-zinc-600">
+                    <X size={14} weight="bold" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!submitted && remaining.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            {order.length === 0 ? "Click items in the correct order" : "Remaining"}
+          </p>
+          {remaining.map((item) => (
+            <button
+              key={item}
+              onClick={() => pick(item)}
+              className="text-left rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm
+                hover:border-zinc-300 transition-colors"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {selected && submitted && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
+            <p className={`mt-3 text-sm leading-relaxed ${isCorrect ? "text-emerald-700" : "text-zinc-600"}`}>
+              <span className="font-semibold">{isCorrect ? "Correct. " : "Not quite. "}</span>
               {question.explanation}
             </p>
           </motion.div>

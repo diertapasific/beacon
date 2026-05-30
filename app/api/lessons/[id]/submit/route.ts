@@ -54,12 +54,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const quiz = lesson.quiz as unknown as QuizQuestion[];
   const results = quiz.map((q, i) => {
+    const answer = selected[i] ?? "";
+
+    if (q.type === "matching") {
+      const correctPairs = Object.fromEntries(
+        q.correct.split(",").map((p) => { const [t, d] = p.split(":").map((s) => s.trim()); return [norm(t), norm(d)]; })
+      );
+      const userPairs = Object.fromEntries(
+        answer.split(",").map((p) => { const [t, d] = p.split(":").map((s) => s.trim()); return [norm(t), norm(d)]; })
+      );
+      const isCorrect = Object.keys(correctPairs).every((t) => userPairs[t] === correctPairs[t]);
+      return { correct: isCorrect, expected: q.correct };
+    }
+
+    if (q.type === "sequence") {
+      const correctSeq = q.correct.split("|").map((s) => norm(s.trim()));
+      const userSeq    = answer.split("|").map((s) => norm(s.trim()));
+      const isCorrect  = correctSeq.length === userSeq.length && correctSeq.every((s, i) => s === userSeq[i]);
+      return { correct: isCorrect, expected: q.correct };
+    }
+
     const correct = resolveCorrect(q);
     const opts: string[] = Array.isArray(q.options) ? q.options : [];
     const isOpenEnded = opts.length === 0 && q.type !== "true_false";
     const isCorrect = isOpenEnded
-      ? fuzzyMatch(selected[i], correct)
-      : norm(selected[i]) === norm(correct);
+      ? fuzzyMatch(answer, correct)
+      : norm(answer) === norm(correct);
     return { correct: isCorrect, expected: correct };
   });
   const correctCount = results.filter((r) => r.correct).length;
