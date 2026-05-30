@@ -290,6 +290,7 @@ function QuizCard({
   selected: string | null;
   onSelect: (option: string) => void;
 }) {
+  const [draft, setDraft] = useState("");
   const answered = selected !== null;
 
   const options =
@@ -299,8 +300,13 @@ function QuizCard({
       ? ["True", "False"]
       : [];
 
+  const isOpenEnded = options.length === 0;
   const correct = resolveCorrect(question, options);
   const gotItRight = norm(selected) === norm(correct);
+
+  function confirmDraft() {
+    if (draft.trim()) onSelect(draft.trim());
+  }
 
   return (
     <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 sm:p-6">
@@ -309,37 +315,72 @@ function QuizCard({
         <span>{question.question}</span>
       </p>
       <div className="mt-4 grid gap-2.5">
-        {options.map((option) => {
-          const isCorrect = norm(option) === norm(correct);
-          const isChosen = norm(option) === norm(selected);
-          let style = "border-zinc-200 bg-white hover:border-zinc-300";
-          let icon = null;
-          if (answered) {
-            if (isCorrect) {
-              style = "border-emerald-400 bg-emerald-50 text-emerald-800";
-              icon = <Check size={16} weight="bold" className="text-emerald-600" />;
-            } else if (isChosen) {
-              style = "border-rose-400 bg-rose-50 text-rose-800";
-              icon = <X size={16} weight="bold" className="text-rose-600" />;
-            } else {
-              style = "border-zinc-200 bg-white opacity-60";
+        {isOpenEnded ? (
+          answered ? (
+            <div className={`rounded-xl border px-4 py-3 text-sm flex items-center justify-between gap-3 ${
+              gotItRight
+                ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                : "border-rose-400 bg-rose-50 text-rose-800"
+            }`}>
+              <span>{selected}</span>
+              {gotItRight
+                ? <Check size={16} weight="bold" className="text-emerald-600" />
+                : <X size={16} weight="bold" className="text-rose-600" />}
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                autoFocus={index === 0}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && confirmDraft()}
+                placeholder="Type your answer…"
+                className="flex-1 h-11 rounded-xl border border-zinc-200 bg-white px-4 text-sm
+                  text-ink placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
+              />
+              <button
+                onClick={confirmDraft}
+                disabled={!draft.trim()}
+                className="h-11 px-4 rounded-xl bg-accent-400 text-ink text-sm font-semibold
+                  disabled:opacity-40 hover:bg-accent-400/90 transition-colors"
+              >
+                <Check size={16} weight="bold" />
+              </button>
+            </div>
+          )
+        ) : (
+          options.map((option) => {
+            const isCorrect = norm(option) === norm(correct);
+            const isChosen = norm(option) === norm(selected);
+            let style = "border-zinc-200 bg-white hover:border-zinc-300";
+            let icon = null;
+            if (answered) {
+              if (isCorrect) {
+                style = "border-emerald-400 bg-emerald-50 text-emerald-800";
+                icon = <Check size={16} weight="bold" className="text-emerald-600" />;
+              } else if (isChosen) {
+                style = "border-rose-400 bg-rose-50 text-rose-800";
+                icon = <X size={16} weight="bold" className="text-rose-600" />;
+              } else {
+                style = "border-zinc-200 bg-white opacity-60";
+              }
             }
-          }
-          return (
-            <motion.button
-              key={option}
-              onClick={() => onSelect(option)}
-              disabled={answered}
-              animate={answered && isChosen && !isCorrect ? { x: [-6, 6, -5, 5, 0] } : {}}
-              transition={{ duration: 0.4 }}
-              className={`flex items-center justify-between gap-3 text-left rounded-xl border px-4 py-3
-                text-sm transition-colors disabled:cursor-default ${style}`}
-            >
-              <span>{option}</span>
-              {icon}
-            </motion.button>
-          );
-        })}
+            return (
+              <motion.button
+                key={option}
+                onClick={() => onSelect(option)}
+                disabled={answered}
+                animate={answered && isChosen && !isCorrect ? { x: [-6, 6, -5, 5, 0] } : {}}
+                transition={{ duration: 0.4 }}
+                className={`flex items-center justify-between gap-3 text-left rounded-xl border px-4 py-3
+                  text-sm transition-colors disabled:cursor-default ${style}`}
+              >
+                <span>{option}</span>
+                {icon}
+              </motion.button>
+            );
+          })
+        )}
       </div>
       <AnimatePresence>
         {answered && (
