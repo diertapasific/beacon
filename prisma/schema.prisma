@@ -1,0 +1,104 @@
+// Beacon — Prisma schema
+// AI-generated, gamified micro-learning paths for any skill
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  totalXp   Int      @default(0)
+  level     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  path         LearningPath?
+  progress     UserProgress[]
+  streak       Streak?
+  achievements Achievement[]
+}
+
+model LearningPath {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  skill        String
+  level        String // "beginner" | "intermediate" | "advanced"
+  hoursPerWeek Int
+  goal         String?
+  rawJson      Json // Full Groq response — cached forever
+  createdAt    DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+}
+
+model Lesson {
+  id           String     @id @default(cuid())
+  pathId       String
+  weekNumber   Int
+  order        Int // Position within the week
+  type         LessonType
+  headline     String
+  coreIdea     String
+  example      String
+  realWorldUse String
+  estimatedSec Int        @default(90)
+  quiz         Json // Array of quiz questions
+
+  path     LearningPath   @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  progress UserProgress[]
+}
+
+enum LessonType {
+  concept_card
+  analogy
+  code_snippet
+  myth_vs_reality
+  did_you_know
+  flashcard
+}
+
+model UserProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  lessonId    String
+  completed   Boolean   @default(false)
+  score       Int       @default(0) // 0-100
+  attempts    Int       @default(0)
+  completedAt DateTime?
+  completedOn String? // "YYYY-MM-DD" — used to check daily completion
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model Streak {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  current         Int       @default(0)
+  longest         Int       @default(0)
+  lastCompletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Achievement {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String // "first_lesson" | "streak_7" | "level_10" etc.
+  unlockedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}

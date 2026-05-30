@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/check-streaks",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
