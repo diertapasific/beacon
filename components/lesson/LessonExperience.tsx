@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -131,13 +130,13 @@ export function LessonExperience({
       {/* Top progress bar */}
       <header className="sticky top-0 z-20 bg-canvas/85 backdrop-blur-md border-b border-zinc-200/70">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <Link
-            href="/dashboard"
+          <button
+            onClick={() => router.back()}
             className="text-zinc-400 hover:text-ink transition-colors active:scale-95 shrink-0"
-            aria-label="Back to dashboard"
+            aria-label="Go back"
           >
             <ArrowLeft size={20} />
-          </Link>
+          </button>
           <div className="flex-1 h-2 rounded-full bg-zinc-200 overflow-hidden">
             <motion.div
               className="h-full bg-accent-400"
