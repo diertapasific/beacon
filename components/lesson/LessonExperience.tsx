@@ -316,15 +316,20 @@ function fuzzyMatch(a: string | null | undefined, b: string): boolean {
 }
 
 function resolveCorrect(q: QuizQuestion, opts: string[]): string {
-  // Direct match (ideal case)
   const direct = opts.find((o) => norm(o) === norm(q.correct));
   if (direct) return direct;
-  // Letter index: "A"→0, "B"→1, "C"→2, "D"→3
   const letterIdx = ["a", "b", "c", "d"].indexOf(norm(q.correct));
   if (letterIdx !== -1 && opts[letterIdx]) return opts[letterIdx];
-  // Numeric index: "1"→0, "2"→1, etc.
   const numIdx = parseInt(q.correct, 10) - 1;
   if (!isNaN(numIdx) && opts[numIdx]) return opts[numIdx];
+  // For long strings (e.g. sequence options) use edit distance to find closest option
+  if (opts.length > 0 && q.correct.length > 15) {
+    const nc = norm(q.correct);
+    const best = opts.reduce((b, o) =>
+      editDistance(norm(o), nc) < editDistance(norm(b), nc) ? o : b
+    , opts[0]);
+    if (editDistance(norm(best), nc) < nc.length * 0.5) return best;
+  }
   return q.correct;
 }
 
@@ -712,29 +717,94 @@ function SequenceCard({
   submitted: boolean; onSelect: (answer: string) => void;
 }) {
   const opts = Array.isArray(question.options) ? question.options.map(String) : [];
-  const correctOrder = String(question.correct ?? "").split("|").map((s) => s.trim());
+  const correctStr = String(question.correct ?? "");
+
+  // If correct has no "|", Groq generated full-sequence options — treat as pick-one
+  const isSingleChoice = !correctStr.includes("|");
+  const correctOption = resolveCorrect(question, opts);
+  const correctOrder = correctStr.split("|").map((s) => s.trim());
 
   const [order, setOrder] = useState<string[]>(() =>
-    selected ? selected.split("|") : []
+    selected && !isSingleChoice ? selected.split("|") : []
   );
   const remaining = opts.filter((o) => !order.includes(o));
 
   function pick(item: string) {
     if (submitted) return;
+    if (isSingleChoice) { onSelect(item); return; }
     const next = [...order, item];
     setOrder(next);
     if (next.length === opts.length) onSelect(next.join("|"));
   }
 
   function unpick(item: string) {
-    if (submitted) return;
+    if (submitted || isSingleChoice) return;
     setOrder((prev) => prev.filter((o) => o !== item));
-    onSelect(""); // clear answer so Submit stays disabled
+    onSelect("");
   }
 
-  const isCorrect = order.length === correctOrder.length &&
-    order.every((o, i) => norm(o) === norm(correctOrder[i]));
+  const isCorrect = isSingleChoice
+    ? norm(selected) === norm(correctOption)
+    : order.length === correctOrder.length && order.every((o, i) => norm(o) === norm(correctOrder[i]));
 
+  // ── Single-choice mode (pick the correct sequence from options) ──
+  if (isSingleChoice) {
+    return (
+      <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 sm:p-6">
+        <p className="flex gap-2 text-base font-semibold text-ink mb-4">
+          <span className="font-mono text-accent-600">{index + 1}.</span>
+          <span>{question.question}</span>
+        </p>
+        <div className="grid gap-2.5">
+          {opts.map((option) => {
+            const isCorrectOpt = norm(option) === norm(correctOption);
+            const isChosen = norm(option) === norm(selected ?? "");
+            let style = "border-zinc-200 bg-white hover:border-zinc-300";
+            let icon = null;
+            if (isChosen && !submitted) {
+              style = "border-accent-400 bg-accent-50 ring-2 ring-accent-400/30";
+            } else if (submitted) {
+              if (isCorrectOpt) {
+                style = "border-emerald-400 bg-emerald-50 text-emerald-800";
+                icon = <Check size={16} weight="bold" className="text-emerald-600" />;
+              } else if (isChosen) {
+                style = "border-rose-400 bg-rose-50 text-rose-800";
+                icon = <X size={16} weight="bold" className="text-rose-600" />;
+              } else {
+                style = "border-zinc-200 bg-white opacity-50";
+              }
+            }
+            return (
+              <motion.button
+                key={option}
+                onClick={() => pick(option)}
+                disabled={submitted}
+                animate={submitted && isChosen && !isCorrectOpt ? { x: [-6, 6, -5, 5, 0] } : {}}
+                transition={{ duration: 0.4 }}
+                className={`flex items-center justify-between gap-3 text-left rounded-xl border px-4 py-3
+                  text-sm transition-colors disabled:cursor-default ${style}`}
+              >
+                <span>{option}</span>
+                {icon}
+              </motion.button>
+            );
+          })}
+        </div>
+        <AnimatePresence>
+          {selected && submitted && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
+              <p className={`mt-3 text-sm leading-relaxed ${isCorrect ? "text-emerald-700" : "text-zinc-600"}`}>
+                <span className="font-semibold">{isCorrect ? "Correct. " : "Not quite. "}</span>
+                {question.explanation}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  // ── Step-ordering mode (drag items into the correct order) ──
   return (
     <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 sm:p-6">
       <p className="flex gap-2 text-base font-semibold text-ink mb-4">

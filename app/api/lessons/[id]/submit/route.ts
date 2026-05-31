@@ -43,13 +43,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const resolveCorrect = (q: QuizQuestion): string => {
-    const opts: string[] = Array.isArray(q.options) ? q.options : [];
+    const opts: string[] = Array.isArray(q.options) ? q.options.map(String) : [];
     const direct = opts.find((o) => norm(o) === norm(q.correct));
     if (direct) return direct;
     const letterIdx = ["a", "b", "c", "d"].indexOf(norm(q.correct));
     if (letterIdx !== -1 && opts[letterIdx]) return opts[letterIdx];
     const numIdx = parseInt(q.correct, 10) - 1;
     if (!isNaN(numIdx) && opts[numIdx]) return opts[numIdx];
+    // For long strings (e.g. sequence options) find closest option by edit distance
+    if (opts.length > 0 && q.correct.length > 15) {
+      const nc = norm(q.correct);
+      const best = opts.reduce((b, o) =>
+        editDistance(norm(o), nc) < editDistance(norm(b), nc) ? o : b
+      , opts[0]);
+      if (editDistance(norm(best), nc) < nc.length * 0.5) return best;
+    }
     return q.correct;
   };
 
@@ -93,6 +101,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     if (q.type === "sequence") {
+      // If correct has no "|", Groq generated full-sequence options (pick-the-right-one)
+      if (!correctStr.includes("|")) {
+        const correct = resolveCorrect(q); // finds closest option even if phrasing differs
+        return { correct: norm(answer) === norm(correct), expected: correct };
+      }
       const correctSeq = correctStr.split("|").map((s) => norm(s.trim()));
       const userSeq    = answer.split("|").map((s) => norm(s.trim()));
       const isCorrect  = correctSeq.length === userSeq.length && correctSeq.every((s, i) => s === userSeq[i]);
