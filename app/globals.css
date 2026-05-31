@@ -58,6 +58,11 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Hide the OS cursor on mouse devices — custom cursor takes over */
+@media (pointer: fine) {
+  *, *::before, *::after { cursor: none !important; }
+}
+
 body {
   overflow-x: clip;
   background: var(--color-paper);

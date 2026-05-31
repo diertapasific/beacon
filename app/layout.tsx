@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import { CustomCursor } from "@/components/ui/CustomCursor";
 
 // Playful / Duolingo identity — rounded, friendly Nunito across the board.
 const nunito = Nunito({
@@ -33,7 +34,10 @@ export default function RootLayout({
       lang="en"
       className={`${nunito.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <CustomCursor />
+      </body>
     </html>
   );
 }
