@@ -47,23 +47,26 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
         </div>
 
         <div className="flex flex-col items-center gap-4">
-          <div className="flex flex-col items-center gap-1" title={`${streak} day streak`}>
-            <Flame size={18} weight="fill" className={streak > 0 ? "text-streak" : "text-ink-faint"} />
-            <span className="font-mono text-[11px] font-bold tabular-nums text-ink-soft">{streak}</span>
-          </div>
-          <div
-            className="grid place-items-center w-9 h-9 rounded-lg border-2 border-line bg-sun-tint font-mono text-xs font-bold text-ink"
-            title={`Level ${level}`}
-          >
-            {level}
-          </div>
-          <button
-            onClick={logout}
-            aria-label="Sign out"
-            className="grid place-items-center w-9 h-9 rounded-lg border-2 border-transparent text-ink-soft hover:text-ink hover:bg-paper-2 transition-colors active:scale-95"
-          >
-            <SignOut size={18} />
-          </button>
+          <RailStat label={`${streak} day streak`}>
+            <div className="flex flex-col items-center gap-1">
+              <Flame size={18} weight="fill" className={streak > 0 ? "text-streak" : "text-ink-faint"} />
+              <span className="font-mono text-[11px] font-bold tabular-nums text-ink-soft">{streak}</span>
+            </div>
+          </RailStat>
+          <RailStat label={`Level ${level}`}>
+            <div className="grid place-items-center w-9 h-9 rounded-lg border-2 border-line bg-sun-tint font-mono text-xs font-bold text-ink">
+              {level}
+            </div>
+          </RailStat>
+          <RailStat label="Sign out">
+            <button
+              onClick={logout}
+              aria-label="Sign out"
+              className="grid place-items-center w-9 h-9 rounded-lg border-2 border-transparent text-ink-soft hover:text-ink hover:bg-paper-2 transition-colors active:scale-95"
+            >
+              <SignOut size={18} />
+            </button>
+          </RailStat>
         </div>
       </aside>
 
@@ -102,22 +105,46 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
   );
 }
 
+function RailLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="
+      pointer-events-none absolute left-full ml-3 z-50
+      px-2.5 py-1 rounded-lg bg-cream border-2 border-line shadow-hard-sm
+      font-bold text-xs text-ink whitespace-nowrap
+      opacity-0 -translate-x-1
+      group-hover:opacity-100 group-hover:translate-x-0
+      transition-all duration-150
+    ">
+      {children}
+    </span>
+  );
+}
+
 function RailLink({
   href, label, active, icon: Icon,
 }: { href: string; label: string; active: boolean; icon: React.ElementType }) {
   return (
     <Link
       href={href}
-      title={label}
       aria-label={label}
-      className={`relative grid place-items-center w-10 h-10 rounded-lg border-2 transition-all active:scale-95 ${
+      className={`group relative grid place-items-center w-10 h-10 rounded-lg border-2 transition-all active:scale-95 ${
         active
           ? "bg-clay text-cream border-line shadow-hard-sm"
           : "border-transparent text-ink-soft hover:bg-paper-2 hover:text-ink"
       }`}
     >
       <Icon size={20} weight={active ? "fill" : "regular"} />
+      <RailLabel>{label}</RailLabel>
     </Link>
+  );
+}
+
+function RailStat({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="group relative flex items-center justify-center">
+      {children}
+      <RailLabel>{label}</RailLabel>
+    </div>
   );
 }
 
