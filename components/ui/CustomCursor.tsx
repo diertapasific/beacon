@@ -58,7 +58,7 @@ export function CustomCursor() {
 
   return (
     <>
-      {/* Outer ring — spring lag */}
+      {/* Outer ring — spring lag, difference blend so it's always visible */}
       <motion.div
         style={{
           position: "fixed",
@@ -73,14 +73,13 @@ export function CustomCursor() {
           pointerEvents: "none",
           zIndex: 9998,
           borderRadius: "50%",
-          border: "2px solid var(--color-clay)",
-          opacity: hovering ? 0.5 : 0.35,
+          border: "2px solid #1a1a1a",
         }}
         animate={{ width: ringSize, height: ringSize, marginLeft: -(ringSize / 2), marginTop: -(ringSize / 2) }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
       />
 
-      {/* Inner dot — tight follow */}
+      {/* Inner dot — tight follow, difference blend */}
       <motion.div
         style={{
           position: "fixed",
@@ -95,7 +94,7 @@ export function CustomCursor() {
           pointerEvents: "none",
           zIndex: 9999,
           borderRadius: "50%",
-          backgroundColor: "var(--color-clay)",
+          backgroundColor: "#1a1a1a",
         }}
         animate={{ width: dotSize, height: dotSize, marginLeft: -(dotSize / 2), marginTop: -(dotSize / 2) }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
