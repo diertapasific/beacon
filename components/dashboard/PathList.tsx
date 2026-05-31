@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Plus, BookOpen, Check, Trash, X } from "@phosphor-icons/react";
 import type { PathSummary } from "@/lib/queries";
+import { toTitleCase } from "@/lib/format";
 
 const container = {
   hidden: {},
@@ -65,7 +66,7 @@ function PathCard({ path, onDeleted }: { path: PathSummary; onDeleted: (id: stri
                 </span>
               )}
             </div>
-            <h2 className="text-xl font-bold tracking-tight text-ink truncate">{path.skill}</h2>
+            <h2 className="text-xl font-bold tracking-tight text-ink truncate">{toTitleCase(path.skill)}</h2>
             {path.goal && (
               <p className="mt-1 text-sm text-zinc-500 line-clamp-1">{path.goal}</p>
             )}

@@ -42,7 +42,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
         </Link>
         <p className="text-sm text-zinc-500">{greeting()}{firstName ? `, ${firstName}` : ""}</p>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tighter text-ink leading-none mt-1">
-          {data.path.skill}
+          {toTitleCase(data.path.skill)}
         </h1>
       </motion.div>
 
