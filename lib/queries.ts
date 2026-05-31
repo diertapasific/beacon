@@ -23,7 +23,7 @@ export interface DashboardData {
   name: string | null;
   xp: { total: number; level: number; progressPct: number; toNext: number };
   streak: { current: number; longest: number; lastCompletedAt: string | null };
-  path: { skill: string; level: string; goal: string | null };
+  path: { id: string; skill: string; level: string; goal: string | null };
   lessons: LessonSummary[];
   nextLessonId: string | null;
   completedToday: number;
@@ -34,18 +34,28 @@ export interface DashboardData {
   achievements: { type: string; label: string; icon: string; desc: string; unlockedAt: string }[];
 }
 
+export interface PathSummary {
+  id: string;
+  skill: string;
+  level: string;
+  goal: string | null;
+  createdAt: string;
+  totalLessons: number;
+  completedLessons: number;
+}
+
 /**
- * Single source of truth for everything the dashboard renders. Reused by the
- * /api/progress and /api/lessons/today routes so client and server stay in sync.
- * Returns null when the user has no learning path yet (→ send to onboarding).
+ * Single source of truth for everything the dashboard renders.
+ * Requires an explicit pathId — works with multi-path accounts.
+ * Returns null when the path doesn't exist or doesn't belong to the user.
  */
-export async function getDashboardData(userId: string): Promise<DashboardData | null> {
+export async function getDashboardData(userId: string, pathId: string): Promise<DashboardData | null> {
   const today = todayKey();
 
   const [user, path, streak, achievements] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
     prisma.learningPath.findUnique({
-      where: { userId },
+      where: { id: pathId },
       include: {
         lessons: {
           orderBy: [{ weekNumber: "asc" }, { order: "asc" }],
@@ -57,9 +67,8 @@ export async function getDashboardData(userId: string): Promise<DashboardData | 
     prisma.achievement.findMany({ where: { userId }, orderBy: { unlockedAt: "desc" } }),
   ]);
 
-  if (!user || !path) return null;
+  if (!user || !path || path.userId !== userId) return null;
 
-  // First uncompleted lesson is "next"; everything after it is locked (sequential).
   const nextIndex = path.lessons.findIndex((l) => !l.progress[0]?.completed);
   const nextLesson = nextIndex >= 0 ? path.lessons[nextIndex] : null;
 
@@ -91,7 +100,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData | 
       longest: streak?.longest ?? 0,
       lastCompletedAt: streak?.lastCompletedAt?.toISOString() ?? null,
     },
-    path: { skill: path.skill, level: path.level, goal: path.goal },
+    path: { id: path.id, skill: path.skill, level: path.level, goal: path.goal },
     lessons,
     nextLessonId: nextLesson?.id ?? null,
     completedToday,
@@ -108,4 +117,27 @@ export async function getDashboardData(userId: string): Promise<DashboardData | 
       return { type: a.type, ...meta, unlockedAt: a.unlockedAt.toISOString() };
     }),
   };
+}
+
+/** Summary of all paths for the paths list page. */
+export async function getUserPathsSummary(userId: string): Promise<PathSummary[]> {
+  const paths = await prisma.learningPath.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      lessons: {
+        include: { progress: { where: { userId } } },
+      },
+    },
+  });
+
+  return paths.map((p) => ({
+    id: p.id,
+    skill: p.skill,
+    level: p.level,
+    goal: p.goal,
+    createdAt: p.createdAt.toISOString(),
+    totalLessons: p.lessons.length,
+    completedLessons: p.lessons.filter((l) => l.progress[0]?.completed).length,
+  }));
 }

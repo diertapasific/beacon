@@ -17,10 +17,6 @@ export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  // One skill per user — never regenerate an existing path (cached forever).
-  const existing = await prisma.learningPath.findUnique({ where: { userId: user.id } });
-  if (existing) return Response.json({ pathId: existing.id });
-
   const { skill, level, hoursPerWeek, goal } = await req.json().catch(() => ({}));
   if (!skill || !level || !hoursPerWeek) {
     return Response.json({ error: "skill, level and hoursPerWeek are required" }, { status: 400 });

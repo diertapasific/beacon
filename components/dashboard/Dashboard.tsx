@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Clock, Check, Lock, Trophy, Confetti } from "@phosphor-icons/react";
+import { ArrowRight, Clock, Check, Lock, Trophy, Confetti, CaretLeft } from "@phosphor-icons/react";
 import type { DashboardData, LessonSummary } from "@/lib/queries";
+import { toTitleCase } from "@/lib/format";
 import { StreakCounter } from "../ui/StreakCounter";
 import { XPBar } from "../ui/XPBar";
 import { LessonTypeBadge, lessonTypeLabel } from "../ui/LessonTypeBadge";
@@ -32,6 +33,13 @@ export function Dashboard({ data }: { data: DashboardData }) {
       className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-28 md:pb-12"
     >
       <motion.div variants={item} className="mb-8">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 shadow-sm hover:border-zinc-300 hover:text-ink transition-all active:scale-95 mb-4"
+        >
+          <CaretLeft size={11} weight="bold" />
+          All paths
+        </Link>
         <p className="text-sm text-zinc-500">{greeting()}{firstName ? `, ${firstName}` : ""}</p>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tighter text-ink leading-none mt-1">
           {data.path.skill}
@@ -135,7 +143,7 @@ function ContinueCard({
           )}
         </div>
         <h3 className="mt-4 text-2xl sm:text-3xl font-bold tracking-tighter leading-tight max-w-[22ch]">
-          {lesson.headline}
+          {toTitleCase(lesson.headline)}
         </h3>
       </div>
       <div className="relative mt-6 flex items-center justify-between gap-4">
@@ -183,7 +191,7 @@ function LessonRow({ lesson, isNext }: { lesson: LessonSummary; isNext: boolean 
           <Check size={16} weight="bold" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium text-ink truncate">{lesson.headline}</span>
+          <span className="block text-sm font-medium text-ink truncate">{toTitleCase(lesson.headline)}</span>
           <span className="text-xs text-zinc-400">{lessonTypeLabel(lesson.type)}</span>
         </span>
         <span className="font-mono text-xs text-emerald-600 tabular-nums">{lesson.score}%</span>
@@ -200,7 +208,7 @@ function LessonRow({ lesson, isNext }: { lesson: LessonSummary; isNext: boolean 
           <ArrowRight size={16} weight="bold" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-ink truncate">{lesson.headline}</span>
+          <span className="block text-sm font-semibold text-ink truncate">{toTitleCase(lesson.headline)}</span>
           <span className="text-xs text-accent-700">Up next · {lessonTypeLabel(lesson.type)}</span>
         </span>
       </Link>
@@ -212,7 +220,7 @@ function LessonRow({ lesson, isNext }: { lesson: LessonSummary; isNext: boolean 
         <Lock size={14} weight="bold" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-zinc-500 truncate">{lesson.headline}</span>
+        <span className="block text-sm font-medium text-zinc-500 truncate">{toTitleCase(lesson.headline)}</span>
         <span className="text-xs text-zinc-400">{lessonTypeLabel(lesson.type)}</span>
       </span>
     </div>

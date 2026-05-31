@@ -4,13 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { House, BookOpen } from "@phosphor-icons/react";
 
-// Mobile-only bottom navigation. Hidden on md+ where the Navbar suffices.
-export function BottomNav({ nextLessonId }: { nextLessonId: string | null }) {
+export function BottomNav({
+  nextLessonId,
+  pathId,
+}: {
+  nextLessonId: string | null;
+  pathId?: string;
+}) {
   const pathname = usePathname();
-  const learnHref = nextLessonId ? `/lesson/${nextLessonId}` : "/dashboard";
+  const homeHref = pathId ? `/dashboard/${pathId}` : "/dashboard";
+  const learnHref = nextLessonId ? `/lesson/${nextLessonId}` : homeHref;
 
   const items = [
-    { href: "/dashboard", label: "Home", icon: House, active: pathname === "/dashboard" },
+    { href: homeHref, label: "Home", icon: House, active: pathname.startsWith("/dashboard") },
     {
       href: learnHref,
       label: "Learn",

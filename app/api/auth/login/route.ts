@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   await setAuthCookie(signToken(user.id));
 
-  const hasPath = await prisma.learningPath.findUnique({
+  const hasPath = await prisma.learningPath.findFirst({
     where: { userId: user.id },
     select: { id: true },
   });

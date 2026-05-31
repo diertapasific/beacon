@@ -18,6 +18,7 @@ import {
 import { Button } from "../ui/Button";
 import { LessonTypeBadge } from "../ui/LessonTypeBadge";
 import { AchievementModal, type UnlockedAchievement } from "../ui/AchievementModal";
+import { toTitleCase } from "@/lib/format";
 
 interface QuizQuestion {
   type: string;
@@ -59,11 +60,13 @@ export function LessonExperience({
   lessonNumber,
   totalLessons,
   subsequentLessonId,
+  pathId,
 }: {
   lesson: LessonContent;
   lessonNumber: number;
   totalLessons: number;
   subsequentLessonId: string | null;
+  pathId: string;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<"lesson" | "quiz" | "result">("lesson");
@@ -248,6 +251,7 @@ export function LessonExperience({
               <PathCompleteView
                 key="path-complete"
                 result={result}
+                dashboardHref={`/dashboard/${pathId}`}
                 onContinue={(href) => { router.push(href); router.refresh(); }}
               />
             ) : (
@@ -255,6 +259,7 @@ export function LessonExperience({
                 key="result"
                 result={result}
                 subsequentLessonId={subsequentLessonId}
+                dashboardHref={`/dashboard/${pathId}`}
                 onRetry={retry}
                 onContinue={(href) => { router.push(href); router.refresh(); }}
               />
@@ -283,7 +288,7 @@ function LessonCardView({ lesson, onReady }: { lesson: LessonContent; onReady: (
     <article>
       <LessonTypeBadge type={lesson.type} />
       <h1 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tighter leading-none text-ink">
-        {lesson.headline}
+        {toTitleCase(lesson.headline)}
       </h1>
 
       <p className="mt-6 text-lg leading-relaxed text-zinc-700 max-w-[60ch]">{lesson.coreIdea}</p>
@@ -887,9 +892,11 @@ function SequenceCard({
 
 function PathCompleteView({
   result,
+  dashboardHref,
   onContinue,
 }: {
   result: SubmitResult;
+  dashboardHref: string;
   onContinue: (href: string) => void;
 }) {
   return (
@@ -973,7 +980,7 @@ function PathCompleteView({
         transition={{ delay: 0.65 }}
         className="mt-8"
       >
-        <Button size="lg" className="w-full" onClick={() => onContinue("/dashboard")}>
+        <Button size="lg" className="w-full" onClick={() => onContinue(dashboardHref)}>
           Back to dashboard <ArrowRight size={18} weight="bold" />
         </Button>
       </motion.div>
@@ -984,11 +991,13 @@ function PathCompleteView({
 function ResultView({
   result,
   subsequentLessonId,
+  dashboardHref,
   onRetry,
   onContinue,
 }: {
   result: SubmitResult;
   subsequentLessonId: string | null;
+  dashboardHref: string;
   onRetry: () => void;
   onContinue: (href: string) => void;
 }) {
@@ -1041,7 +1050,7 @@ function ResultView({
               Next lesson <ArrowRight size={18} weight="bold" />
             </Button>
           ) : (
-            <Button size="lg" className="w-full" onClick={() => onContinue("/dashboard")}>
+            <Button size="lg" className="w-full" onClick={() => onContinue(dashboardHref)}>
               Back to dashboard
             </Button>
           )
@@ -1050,7 +1059,7 @@ function ResultView({
             <ArrowsClockwise size={18} weight="bold" /> Try again
           </Button>
         )}
-        <Button variant="ghost" onClick={() => onContinue("/dashboard")}>
+        <Button variant="ghost" onClick={() => onContinue(dashboardHref)}>
           <House size={18} /> Dashboard
         </Button>
       </div>

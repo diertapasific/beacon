@@ -75,7 +75,7 @@ export function OnboardingWizard() {
         setPhase("error");
         return;
       }
-      router.push("/dashboard");
+      router.push(`/dashboard/${data.pathId}`);
       router.refresh();
     } catch {
       setError("Network error — please try again.");

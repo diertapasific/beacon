@@ -11,29 +11,37 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   const user = await getUser();
   if (!user) redirect("/auth/login");
 
-  const path = await prisma.learningPath.findUnique({
-    where: { userId: user.id },
+  // Get the lesson and its path together — supports multiple paths per user.
+  const lessonRecord = await prisma.lesson.findUnique({
+    where: { id },
     include: {
-      lessons: {
-        orderBy: [{ weekNumber: "asc" }, { order: "asc" }],
-        include: { progress: { where: { userId: user.id } } },
+      path: {
+        include: {
+          lessons: {
+            orderBy: [{ weekNumber: "asc" }, { order: "asc" }],
+            include: { progress: { where: { userId: user.id } } },
+          },
+        },
       },
     },
   });
-  if (!path) redirect("/onboarding");
 
+  if (!lessonRecord) notFound();
+  if (lessonRecord.path.userId !== user.id) notFound();
+
+  const { path } = lessonRecord;
+  const pathId = path.id;
   const idx = path.lessons.findIndex((l) => l.id === id);
-  if (idx === -1) notFound(); // lesson exists but isn't in this user's path
+  if (idx === -1) notFound();
 
   const target = path.lessons[idx];
   const nextIndex = path.lessons.findIndex((l) => !l.progress[0]?.completed);
 
-  // Sequential gate: only the next-up lesson or already-completed ones are open.
   const isCompleted = !!target.progress[0]?.completed;
   const allowed = isCompleted || idx === nextIndex;
   if (!allowed) {
     const nextId = nextIndex >= 0 ? path.lessons[nextIndex].id : null;
-    redirect(nextId ? `/lesson/${nextId}` : "/dashboard");
+    redirect(nextId ? `/lesson/${nextId}` : `/dashboard/${pathId}`);
   }
 
   const lesson: LessonContent = {
@@ -53,6 +61,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
       lessonNumber={idx + 1}
       totalLessons={path.lessons.length}
       subsequentLessonId={path.lessons[idx + 1]?.id ?? null}
+      pathId={pathId}
     />
   );
 }

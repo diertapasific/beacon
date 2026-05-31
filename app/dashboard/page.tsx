@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
-import { getDashboardData } from "@/lib/queries";
+import { getUserPathsSummary } from "@/lib/queries";
 import { Navbar } from "@/components/layout/Navbar";
-import { BottomNav } from "@/components/layout/BottomNav";
-import { Dashboard } from "@/components/dashboard/Dashboard";
+import { PathList } from "@/components/dashboard/PathList";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +10,13 @@ export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect("/auth/login");
 
-  const data = await getDashboardData(user.id);
-  if (!data) redirect("/onboarding");
+  const paths = await getUserPathsSummary(user.id);
+  if (paths.length === 0) redirect("/onboarding");
 
   return (
     <>
-      <Navbar streak={data.streak.current} level={data.xp.level} />
-      <Dashboard data={data} />
-      <BottomNav nextLessonId={data.nextLessonId} />
+      <Navbar streak={0} level={1} />
+      <PathList paths={paths} userName={user.name} />
     </>
   );
 }
