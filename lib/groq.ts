@@ -30,17 +30,22 @@ Week ${weekNumber} focus: ${theme}
 
 LESSON RULES (non-negotiable):
 - Generate EXACTLY 6 lessons. No fewer.
-- Each lesson covers ONE focused, specific concept, tool, or comparison — never a vague overview
-- Headlines must be specific ("How Gradient Descent Minimizes Loss" not "Training Models")
+- Each lesson covers ONE focused, specific concept, mechanic, strategy, or comparison — never a vague overview
+- Headlines must be specific and concrete ("How Rent Calculation Works in Monopoly" not "Understanding Rent")
 - coreIdea: 3-5 sentences covering WHAT it is, HOW it works mechanically, and WHY it matters
-- example: Concrete working code snippet OR a precise analogy with named specifics — no placeholders
-- realWorldUse: Name a specific company, product, or research result that uses this
+- example: A precise real-world analogy, a named historical example, or a concrete scenario — no generic placeholders
+- realWorldUse: A specific real example, published study, notable player story, or documented application of this concept
 - estimatedSec: 120 to 180
 
+CRITICAL — MATCH THE SKILL DOMAIN:
+- The skill is "${skill}". Determine if it is a programming/software/technical skill or a non-technical skill (game, sport, art, language, history, etc.)
+- If NON-TECHNICAL: NEVER include code_snippet lessons. NEVER mention Python, JavaScript, or any programming language. Use only concept_card, analogy, myth_vs_reality, did_you_know, or flashcard types.
+- If TECHNICAL: code_snippet lessons are appropriate.
+
 WEEK ${weekNumber} MUST INCLUDE:
-- At least 2 lessons about specific tools, libraries, or APIs
-- At least 1 lesson comparing two approaches or algorithms directly
+- At least 1 lesson comparing two strategies, approaches, or mechanics directly
 - At least 1 myth_vs_reality or did_you_know lesson
+- At least 1 analogy lesson that connects the concept to everyday life
 - No more than 2 consecutive lessons of the same type
 
 QUIZ RULES:
@@ -76,7 +81,10 @@ Return ONLY valid JSON, no markdown:
 }
 
 Lesson type: concept_card | analogy | code_snippet | myth_vs_reality | did_you_know | flashcard
+  (only use code_snippet if the skill is a programming/technical topic)
+
 Quiz type: multiple_choice | true_false | fill_blank | matching | sequence | spot_the_bug
+  (only use spot_the_bug if the skill is a programming/technical topic)
 
 Quiz format (STRICT):
 - multiple_choice: options = 4 strings. correct = full text of one option, copied exactly.
