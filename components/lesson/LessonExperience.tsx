@@ -13,6 +13,7 @@ import {
   Sparkle,
   House,
   ArrowsClockwise,
+  Trophy,
 } from "@phosphor-icons/react";
 import { Button } from "../ui/Button";
 import { LessonTypeBadge } from "../ui/LessonTypeBadge";
@@ -111,7 +112,17 @@ export function LessonExperience({
 
   function showResult() {
     setPhase("result");
-    if (result?.passed && result?.leveledUp) {
+    const isPathComplete = !subsequentLessonId && result?.passed;
+    if (isPathComplete) {
+      const burst = (opts: confetti.Options) =>
+        confetti({ colors: ["#fbbf24", "#f59e0b", "#fde68a", "#1c1917"], ...opts });
+      setTimeout(() => burst({ particleCount: 120, spread: 100, origin: { y: 0.55 } }), 100);
+      setTimeout(() => {
+        burst({ particleCount: 80, spread: 130, origin: { x: 0.15, y: 0.6 } });
+        burst({ particleCount: 80, spread: 130, origin: { x: 0.85, y: 0.6 } });
+      }, 450);
+      setTimeout(() => burst({ particleCount: 160, spread: 180, origin: { y: 0.45 } }), 850);
+    } else if (result?.passed && result?.leveledUp) {
       setTimeout(
         () =>
           confetti({
@@ -233,16 +244,21 @@ export function LessonExperience({
           )}
 
           {phase === "result" && result && (
-            <ResultView
-              key="result"
-              result={result}
-              subsequentLessonId={subsequentLessonId}
-              onRetry={retry}
-              onContinue={(href) => {
-                router.push(href);
-                router.refresh();
-              }}
-            />
+            !subsequentLessonId && result.passed ? (
+              <PathCompleteView
+                key="path-complete"
+                result={result}
+                onContinue={(href) => { router.push(href); router.refresh(); }}
+              />
+            ) : (
+              <ResultView
+                key="result"
+                result={result}
+                subsequentLessonId={subsequentLessonId}
+                onRetry={retry}
+                onContinue={(href) => { router.push(href); router.refresh(); }}
+              />
+            )
           )}
         </AnimatePresence>
       </div>
@@ -866,6 +882,102 @@ function SequenceCard({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function PathCompleteView({
+  result,
+  onContinue,
+}: {
+  result: SubmitResult;
+  onContinue: (href: string) => void;
+}) {
+  return (
+    <motion.div
+      key="path-complete"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 18 }}
+      className="text-center pt-4"
+    >
+      {/* Trophy icon */}
+      <motion.div
+        initial={{ scale: 0, rotate: -15 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 220, damping: 12, delay: 0.08 }}
+        className="mx-auto w-24 h-24 rounded-[2rem] bg-accent-400
+          shadow-[0_8px_0_var(--color-accent-600)]
+          grid place-items-center mb-6"
+      >
+        <Trophy size={48} weight="fill" className="text-ink" />
+      </motion.div>
+
+      {/* Label */}
+      <motion.p
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="text-xs font-bold uppercase tracking-widest text-accent-600 mb-2"
+      >
+        Path complete
+      </motion.p>
+
+      {/* Headline */}
+      <motion.h2
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="text-4xl sm:text-5xl font-bold tracking-tighter text-ink leading-none"
+      >
+        You did it.
+      </motion.h2>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.42 }}
+        className="mt-3 text-base text-zinc-500 max-w-[34ch] mx-auto leading-relaxed"
+      >
+        Every lesson cleared. Every concept earned.
+      </motion.p>
+
+      {/* Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.52, type: "spring", stiffness: 120, damping: 18 }}
+        className="mt-8 inline-flex items-center gap-5 rounded-2xl bg-white
+          border border-zinc-200/70 px-6 py-4
+          shadow-[0_4px_0_#e4e4e7]"
+      >
+        <Stat label="Score" value={`${result.score}%`} />
+        <div className="w-px h-8 bg-zinc-200" />
+        <Stat label="XP earned" value={`+${result.xpEarned}`} accent />
+        {result.streak !== undefined && (
+          <>
+            <div className="w-px h-8 bg-zinc-200" />
+            <Stat label="Streak" value={`${result.streak}d`} />
+          </>
+        )}
+        {result.newLevel && (
+          <>
+            <div className="w-px h-8 bg-zinc-200" />
+            <Stat label="Level" value={`${result.newLevel}`} />
+          </>
+        )}
+      </motion.div>
+
+      {/* CTA */}
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.65 }}
+        className="mt-8"
+      >
+        <Button size="lg" className="w-full" onClick={() => onContinue("/dashboard")}>
+          Back to dashboard <ArrowRight size={18} weight="bold" />
+        </Button>
+      </motion.div>
+    </motion.div>
   );
 }
 
