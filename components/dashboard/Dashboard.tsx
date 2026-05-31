@@ -43,7 +43,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
       variants={container}
       initial="hidden"
       animate="show"
-      className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-28 md:pb-12"
+      className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-28 md:pb-12 overflow-x-hidden"
     >
       {/* Header */}
       <motion.div variants={item} className="mb-8">
@@ -62,7 +62,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
 
       {/* Top bento: continue card + stats */}
       <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
-        <motion.div variants={item} className="lg:col-span-2">
+        <motion.div variants={item} className="lg:col-span-2 min-w-0">
           {data.allDone || !nextLesson ? (
             <AllDoneCard skill={data.path.skill} completed={data.totalCompleted} />
           ) : (
@@ -70,7 +70,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
           )}
         </motion.div>
 
-        <motion.div variants={item} className="flex flex-col gap-4 sm:gap-6">
+        <motion.div variants={item} className="flex flex-col gap-4 sm:gap-6 min-w-0">
           <div className="rounded-[2rem] bg-white border border-zinc-200/70 p-6 shadow-[0_20px_40px_-25px_rgba(0,0,0,0.12)]">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-3">Streak</p>
             <StreakCounter days={data.streak.current} />
@@ -270,13 +270,13 @@ function ContinueCard({ lesson, completedToday, bonusActive }: { lesson: LessonS
           {toTitleCase(lesson.headline)}
         </h3>
       </div>
-      <div className="relative mt-6 flex items-center justify-between gap-4">
-        <p className="text-sm text-zinc-400">
+      <div className="relative mt-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-zinc-400 min-w-0">
           {completedToday > 0 ? `${completedToday} done today — keep the momentum.` : "Your next lesson is ready."}
         </p>
         <Link
           href={`/lesson/${lesson.id}`}
-          className="inline-flex items-center gap-2 rounded-2xl bg-accent-400 text-ink h-12 px-6 font-semibold tracking-tight shadow-[0_4px_0_var(--color-accent-600)] active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-accent-600)] transition-all"
+          className="shrink-0 inline-flex items-center gap-2 rounded-2xl bg-accent-400 text-ink h-12 px-6 font-semibold tracking-tight shadow-[0_4px_0_var(--color-accent-600)] active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-accent-600)] transition-all"
         >
           {completedToday > 0 ? "Continue" : "Start"}
           <ArrowRight size={18} weight="bold" />
