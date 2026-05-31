@@ -24,10 +24,10 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
     router.refresh();
   }
 
-  const homeHref = pathId ? `/dashboard/${pathId}` : "/dashboard";
-  const learnHref = nextLessonId ? `/lesson/${nextLessonId}` : homeHref;
+  const pathDashHref = pathId ? `/dashboard/${pathId}` : "/dashboard";
+  const learnHref = nextLessonId ? `/lesson/${nextLessonId}` : pathDashHref;
   const onPaths = pathname === "/dashboard";
-  const onLearn = pathname.startsWith("/lesson");
+  const onLearn = pathname.startsWith("/lesson") || pathname.startsWith("/dashboard/");
 
   return (
     <div className="bg-paper min-h-[100dvh]">
@@ -95,7 +95,7 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-2 border-t-2 border-line bg-cream">
-        <BottomTab href={homeHref} label="Paths" active={onPaths || pathname.startsWith("/dashboard")} icon={SquaresFour} />
+        <BottomTab href="/dashboard" label="Paths" active={onPaths} icon={SquaresFour} />
         <BottomTab href={learnHref} label="Learn" active={onLearn} icon={BookOpen} />
       </nav>
     </div>
