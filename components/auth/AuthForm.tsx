@@ -35,12 +35,19 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(copy.endpoint, {
@@ -69,7 +76,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <div className="min-h-[100dvh] grid lg:grid-cols-2">
-      {/* Brand panel — left, desktop only (avoids a pure-centered layout). */}
+      {/* Brand panel — left, desktop only */}
       <div className="relative hidden lg:flex flex-col justify-between bg-ink text-canvas p-12 overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-accent-500/20 blur-3xl" />
         <Link href="/" className="inline-flex items-center gap-2 relative">
@@ -150,6 +157,29 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 className={inputClass}
               />
             </Field>
+
+            {mode === "signup" && (
+              <Field label="Confirm password" htmlFor="confirmPassword">
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={
+                    inputClass +
+                    (confirmPassword && confirmPassword !== password
+                      ? " !border-rose-400 focus:!ring-rose-400"
+                      : "")
+                  }
+                />
+                {confirmPassword && confirmPassword !== password && (
+                  <span className="text-xs text-rose-500 -mt-1">Passwords don't match</span>
+                )}
+              </Field>
+            )}
 
             {error && (
               <motion.p
