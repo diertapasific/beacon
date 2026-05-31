@@ -15,6 +15,7 @@ import { lessonTypeLabel } from "../ui/LessonTypeBadge";
 import { Icon } from "../ui/Icon";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 
+
 const NODE_ICON: Record<string, React.ElementType> = {
   concept_card:   BookOpen,
   analogy:        Lightbulb,
@@ -93,7 +94,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
             {data.totalCompleted}/{data.totalLessons} lessons
           </span>
         </div>
-        <PathRoute weeks={weeks} nextLessonId={data.nextLessonId} />
+        <PathRoute weeks={weeks} nextLessonId={data.nextLessonId} weekThemes={data.weekThemes} />
       </motion.section>
 
       {/* Achievements */}
@@ -106,7 +107,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
 }
 
 // ── Path route: vertical timeline view ───────────────────────────────────────
-function PathRoute({ weeks, nextLessonId }: { weeks: WeekGroup[]; nextLessonId: string | null }) {
+function PathRoute({ weeks, nextLessonId, weekThemes }: { weeks: WeekGroup[]; nextLessonId: string | null; weekThemes: Record<number, string> }) {
   // Find which week contains the next lesson — open it by default
   const activeWeek = weeks.find((w) => w.lessons.some((l) => l.id === nextLessonId))?.weekNumber
     ?? weeks.find((w) => w.lessons.some((l) => !l.completed))?.weekNumber
@@ -139,11 +140,13 @@ function PathRoute({ weeks, nextLessonId }: { weeks: WeekGroup[]; nextLessonId: 
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shadow-sm transition-colors ${
                   allDone ? "bg-emerald-500 text-white" : "bg-zinc-900 text-white"
                 }`}>
-                  W{week.weekNumber}
+                  {String(week.weekNumber).padStart(2, "0")}
                 </div>
               </div>
               <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
-                <span className="text-sm font-semibold text-ink">Week {week.weekNumber}</span>
+                <span className="text-sm font-semibold text-ink">
+                  {weekThemes[week.weekNumber] ?? `Week ${week.weekNumber}`}
+                </span>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="w-20 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
                     <div

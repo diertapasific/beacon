@@ -24,6 +24,7 @@ export interface DashboardData {
   xp: { total: number; level: number; progressPct: number; toNext: number };
   streak: { current: number; longest: number; lastCompletedAt: string | null };
   path: { id: string; skill: string; level: string; goal: string | null };
+  weekThemes: Record<number, string>; // weekNumber → short theme label
   lessons: LessonSummary[];
   nextLessonId: string | null;
   completedToday: number;
@@ -87,6 +88,14 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
   const completedToday = path.lessons.filter((l) => l.progress[0]?.completedOn === today).length;
   const totalCompleted = lessons.filter((l) => l.completed).length;
 
+  // Extract week themes from rawJson (stored as GeneratedPath)
+  const weekThemes: Record<number, string> = {};
+  const raw = path.rawJson as { weeks?: Array<{ week: number; theme: string }> };
+  for (const w of raw.weeks ?? []) {
+    // Trim everything after " — " to get just the short label e.g. "Foundations"
+    weekThemes[w.week] = w.theme?.split(" — ")[0]?.trim() ?? `Week ${w.week}`;
+  }
+
   return {
     name: user.name,
     xp: {
@@ -101,6 +110,7 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
       lastCompletedAt: streak?.lastCompletedAt?.toISOString() ?? null,
     },
     path: { id: path.id, skill: path.skill, level: path.level, goal: path.goal },
+    weekThemes,
     lessons,
     nextLessonId: nextLesson?.id ?? null,
     completedToday,
