@@ -258,7 +258,7 @@ export function LessonExperience({
                 key="path-complete"
                 result={result}
                 dashboardHref={`/dashboard/${pathId}`}
-                onContinue={(href) => { router.push(href); router.refresh(); }}
+                onContinue={(href) => { router.push(href); }}
               />
             ) : (
               <ResultView
@@ -267,7 +267,7 @@ export function LessonExperience({
                 subsequentLessonId={subsequentLessonId}
                 dashboardHref={`/dashboard/${pathId}`}
                 onRetry={retry}
-                onContinue={(href) => { router.push(href); router.refresh(); }}
+                onContinue={(href) => { router.push(href); }}
               />
             )
           )}
