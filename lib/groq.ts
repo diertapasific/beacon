@@ -8,19 +8,55 @@ const WEEK_THEMES = [
   "Foundations — core mental models, key terminology, why this skill matters",
   "Core Techniques — essential tools, libraries, and hands-on workflows",
   "Depth — advanced concepts, tradeoffs, edge cases, comparing approaches",
+  "Real-World Application — projects, common mistakes, putting it into practice",
   "Mastery — expert patterns, debugging, real-world application, career context",
 ] as const;
+
+/** Pick week themes evenly across however many weeks the path has. */
+function pickThemes(totalWeeks: number): string[] {
+  const all = WEEK_THEMES as unknown as string[];
+  if (totalWeeks >= all.length) return all.slice(0, totalWeeks);
+  // Spread evenly: always start with Foundations, always end with Mastery
+  const indices = [0];
+  const step = (all.length - 1) / (totalWeeks - 1);
+  for (let i = 1; i < totalWeeks - 1; i++) indices.push(Math.round(i * step));
+  indices.push(all.length - 1);
+  return indices.map((i) => all[i]);
+}
+
+/** How many weeks and how many lessons per week based on level + commitment. */
+export function getPathStructure(level: string, hoursPerWeek: number): {
+  weekCount: number;
+  minLessons: number;
+  maxLessons: number;
+} {
+  const h = Number(hoursPerWeek);
+
+  const weekCount =
+    level === "beginner"     ? (h <= 2 ? 3 : 4) :
+    level === "advanced"     ? (h <= 2 ? 4 : 5) :
+    /* intermediate */          (h <= 2 ? 3 : h >= 5 ? 5 : 4);
+
+  const minLessons = h <= 2 ? 4 : h <= 4 ? 5 : 6;
+  const maxLessons = h <= 2 ? 5 : h <= 4 ? 7 : 8;
+
+  return { weekCount, minLessons, maxLessons };
+}
 
 export function buildWeekPrompt(
   skill: string,
   level: string,
   hoursPerWeek: number,
   goal: string | undefined,
-  weekNumber: number
+  weekNumber: number,
+  totalWeeks: number,
+  minLessons: number,
+  maxLessons: number,
 ): string {
-  const theme = WEEK_THEMES[weekNumber - 1];
+  const themes = pickThemes(totalWeeks);
+  const theme = themes[weekNumber - 1];
   return `
-You are a world-class instructional designer. Generate Week ${weekNumber} of 4 for a micro-learning curriculum.
+You are a world-class instructional designer. Generate Week ${weekNumber} of ${totalWeeks} for a micro-learning curriculum.
 
 Skill: ${skill}
 Level: ${level}
@@ -29,7 +65,7 @@ Goal: ${goal || "General mastery"}
 Week ${weekNumber} focus: ${theme}
 
 LESSON RULES (non-negotiable):
-- Generate EXACTLY 6 lessons. No fewer.
+- Generate between ${minLessons} and ${maxLessons} lessons — choose the count that best fits the theme's natural scope. Do not pad to hit a number.
 - Each lesson covers ONE focused, specific concept, mechanic, strategy, or comparison — never a vague overview
 - Headlines must be specific and concrete ("How Rent Calculation Works in Monopoly" not "Understanding Rent")
 - coreIdea: 3-5 sentences covering WHAT it is, HOW it works mechanically, and WHY it matters
@@ -103,7 +139,10 @@ export function buildPathPrompt(
   hoursPerWeek: number,
   goal?: string
 ): string {
-  return [1, 2, 3, 4].map((w) => buildWeekPrompt(skill, level, hoursPerWeek, goal, w)).join("\n\n---\n\n");
+  const { weekCount, minLessons, maxLessons } = getPathStructure(level, hoursPerWeek);
+  return Array.from({ length: weekCount }, (_, i) => i + 1)
+    .map((w) => buildWeekPrompt(skill, level, hoursPerWeek, goal, w, weekCount, minLessons, maxLessons))
+    .join("\n\n---\n\n");
 }
 
 /** Shape of a single quiz question stored in Lesson.quiz */

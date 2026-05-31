@@ -93,7 +93,7 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
   const raw = path.rawJson as { weeks?: Array<{ week: number; theme: string }> };
   for (const w of raw.weeks ?? []) {
     // Trim everything after " — " to get just the short label e.g. "Foundations"
-    weekThemes[w.week] = w.theme?.split(" — ")[0]?.trim() ?? `Week ${w.week}`;
+    weekThemes[w.week] = w.theme?.split(" — ")[0]?.trim() ?? `Phase ${w.week}`;
   }
 
   return {

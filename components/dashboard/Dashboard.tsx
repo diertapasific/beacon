@@ -106,7 +106,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
       {/* The path */}
       <motion.section variants={item} className="mt-12">
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft">/ Curriculum</h2>
+          <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft">/ Your path</h2>
           <span className="font-mono text-[11px] font-bold text-ink-faint tabular-nums">{pct}% complete</span>
         </div>
         <PathRoute weeks={weeks} nextLessonId={data.nextLessonId} weekThemes={data.weekThemes} />
@@ -217,12 +217,12 @@ function PathRoute({ weeks, nextLessonId, weekThemes }: { weeks: WeekGroup[]; ne
         return (
           <div key={week.weekNumber}>
             <button onClick={() => toggle(week.weekNumber)} className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-left group hover:bg-paper-2 transition-colors">
-              <span className={`grid place-items-center w-8 h-8 rounded-lg border-2 border-line font-mono text-xs font-bold tabular-nums shrink-0
-                ${allDone ? "bg-teal text-cream" : "bg-sun-tint text-ink"}`}>
-                {String(week.weekNumber).padStart(2, "0")}
+              <span className={`inline-flex items-center rounded-full border-2 border-line px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide shrink-0
+                ${allDone ? "bg-teal text-cream border-teal" : "bg-sun-tint text-ink"}`}>
+                {allDone ? "Done" : `Phase ${week.weekNumber}`}
               </span>
-              <span className="flex-1 text-sm font-bold text-ink truncate">
-                {weekThemes[week.weekNumber] ?? `Week ${week.weekNumber}`}
+              <span className="flex-1 text-sm font-bold text-ink">
+                {weekThemes[week.weekNumber] ?? `Phase ${week.weekNumber}`}
               </span>
               <div className="flex items-center gap-3 shrink-0">
                 <div className="hidden sm:block w-16 h-2.5 rounded-full bg-paper border-2 border-line overflow-hidden">
@@ -282,7 +282,7 @@ function LessonRow({ lesson, index, isNext }: { lesson: LessonSummary; index: nu
       <span className="grid place-items-center shrink-0">{glyph}</span>
       <div className="min-w-0 flex-1">
         <p className="font-mono text-[10px] font-bold uppercase tracking-wide text-ink-faint">
-          {String(index + 1).padStart(2, "0")} · {isNext ? "Up next" : lessonTypeLabel(lesson.type)}
+          {isNext ? "Up next" : lessonTypeLabel(lesson.type)}
         </p>
         <p className={`text-sm truncate ${isNext ? "font-bold text-ink" : lesson.locked ? "text-ink-faint" : "font-medium text-ink-soft"}`}>
           {toTitleCase(lesson.headline)}

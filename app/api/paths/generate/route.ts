@@ -1,4 +1,4 @@
-import { groq, buildWeekPrompt, parseWeekResponse, PATH_MODEL } from "@/lib/groq";
+import { groq, buildWeekPrompt, parseWeekResponse, getPathStructure, PATH_MODEL } from "@/lib/groq";
 import type { GeneratedPath } from "@/lib/groq";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
@@ -27,13 +27,19 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Generate all 4 weeks in parallel — each call gets its own full token budget.
+    const { weekCount, minLessons, maxLessons } = getPathStructure(String(level), Number(hoursPerWeek));
+
+    // Generate all weeks in parallel — each call gets its own full token budget.
+    const weekNums = Array.from({ length: weekCount }, (_, i) => i + 1);
     const weekCompletions = await Promise.all(
-      [1, 2, 3, 4].map((week) =>
+      weekNums.map((week) =>
         groq.chat.completions.create({
           model: PATH_MODEL,
           messages: [
-            { role: "user", content: buildWeekPrompt(skill, level, Number(hoursPerWeek), goal, week) },
+            {
+              role: "user",
+              content: buildWeekPrompt(skill, level, Number(hoursPerWeek), goal, week, weekCount, minLessons, maxLessons),
+            },
           ],
           max_tokens: 8000,
           temperature: 0.7,
@@ -48,7 +54,7 @@ export async function POST(req: Request) {
 
     const parsed: GeneratedPath = {
       skill: String(skill),
-      totalWeeks: 4,
+      totalWeeks: weekCount,
       weeks,
     };
 
