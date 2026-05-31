@@ -952,7 +952,7 @@ function PathCompleteView({
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.52, type: "spring", stiffness: 120, damping: 18 }}
-        className="mt-8 inline-flex items-center gap-5 rounded-2xl bg-white
+        className="mt-8 flex flex-wrap justify-center items-center gap-x-5 gap-y-3 rounded-2xl bg-white
           border border-zinc-200/70 px-6 py-4
           shadow-[0_4px_0_#e4e4e7]"
       >
@@ -1031,7 +1031,7 @@ function ResultView({
           : result.message ?? "Review and try again."}
       </p>
 
-      <div className="mt-6 inline-flex items-center gap-6 rounded-2xl bg-white border border-zinc-200/70 px-6 py-4">
+      <div className="mt-6 flex flex-wrap justify-center items-center gap-x-6 gap-y-3 rounded-2xl bg-white border border-zinc-200/70 px-6 py-4">
         <Stat label="Score" value={`${result.score}%`} />
         <div className="w-px h-8 bg-zinc-200" />
         <Stat label="XP earned" value={`+${result.xpEarned}`} accent />
