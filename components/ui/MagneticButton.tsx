@@ -18,8 +18,8 @@ export function MagneticButton({
   const ref = useRef<HTMLButtonElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const springX = useSpring(x, { stiffness: 200, damping: 15 });
-  const springY = useSpring(y, { stiffness: 200, damping: 15 });
+  const springX = useSpring(x, { stiffness: 300, damping: 28 });
+  const springY = useSpring(y, { stiffness: 300, damping: 28 });
 
   function handleMove(e: MouseEvent<HTMLButtonElement>) {
     const el = ref.current;
@@ -27,8 +27,8 @@ export function MagneticButton({
     const rect = el.getBoundingClientRect();
     const relX = e.clientX - (rect.left + rect.width / 2);
     const relY = e.clientY - (rect.top + rect.height / 2);
-    x.set(relX * 0.35);
-    y.set(relY * 0.35);
+    x.set(Math.max(-10, Math.min(10, relX * 0.12)));
+    y.set(Math.max(-10, Math.min(10, relY * 0.12)));
   }
 
   function reset() {
