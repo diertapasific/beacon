@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lighthouse, ArrowRight, ArrowLeft, Check } from "@phosphor-icons/react";
 import { Button } from "../ui/Button";
+import { Logo } from "../ui/Logo";
+import { Blob, Stamp } from "../ui/Riso";
 
 const SKILL_SUGGESTIONS = [
   "Machine Learning",
@@ -87,20 +89,17 @@ export function OnboardingWizard() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col">
-      <header className="px-4 sm:px-6 py-5 max-w-2xl w-full mx-auto flex items-center gap-2">
-        <span className="grid place-items-center w-8 h-8 rounded-xl bg-ink text-accent-400">
-          <Lighthouse size={18} weight="fill" />
-        </span>
-        <span className="text-lg font-semibold tracking-tight text-ink">Beacon</span>
+      <header className="px-4 sm:px-6 py-5 max-w-2xl w-full mx-auto">
+        <Logo />
       </header>
 
       {/* Step progress */}
       <div className="max-w-2xl w-full mx-auto px-4 sm:px-6">
         <div className="flex gap-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-1.5 flex-1 rounded-full bg-zinc-200 overflow-hidden">
+            <div key={i} className="h-3 flex-1 rounded-full bg-cream border-2 border-line overflow-hidden">
               <motion.div
-                className="h-full bg-accent-400"
+                className="h-full bg-clay"
                 initial={false}
                 animate={{ width: i <= step ? "100%" : "0%" }}
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
@@ -135,16 +134,16 @@ export function OnboardingWizard() {
                     onChange={(e) => setSkill(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && canAdvance && go(1)}
                     placeholder="e.g. Machine Learning"
-                    className="w-full h-14 rounded-2xl border border-zinc-200 bg-white px-5 text-lg
-                      text-ink placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-accent-400"
+                    className="w-full h-16 rounded-xl border-2 border-line bg-cream px-5 text-lg font-medium
+                      text-ink placeholder:text-ink-faint shadow-hard-sm focus:outline-none focus:ring-2 focus:ring-clay"
                   />
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {SKILL_SUGGESTIONS.map((s) => (
+                    {SKILL_SUGGESTIONS.map((s, i) => (
                       <button
                         key={s}
                         onClick={() => setSkill(s)}
-                        className="rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-sm
-                          text-zinc-600 hover:border-accent-300 hover:text-ink transition-colors active:scale-95"
+                        className={`rounded-full border-2 border-line px-3.5 py-1.5 text-sm font-semibold text-ink press
+                          ${i % 3 === 0 ? "bg-clay-tint" : i % 3 === 1 ? "bg-teal-tint" : "bg-sun-tint"}`}
                       >
                         {s}
                       </button>
@@ -191,9 +190,9 @@ export function OnboardingWizard() {
                     ))}
                   </div>
                   <div className="mt-5 flex flex-col gap-2">
-                    <label htmlFor="goal" className="text-sm font-medium text-ink">
+                    <label htmlFor="goal" className="text-sm font-bold text-ink">
                       Anything specific you’re aiming for?{" "}
-                      <span className="text-xs font-normal text-zinc-400">optional</span>
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-wide text-ink-faint">optional</span>
                     </label>
                     <textarea
                       id="goal"
@@ -201,8 +200,8 @@ export function OnboardingWizard() {
                       onChange={(e) => setGoal(e.target.value)}
                       rows={2}
                       placeholder="e.g. Ship a side project, pass an exam, switch careers…"
-                      className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-ink
-                        placeholder:text-zinc-400 resize-none focus:outline-none focus:ring-2 focus:ring-accent-400"
+                      className="w-full rounded-xl border-2 border-line bg-cream px-4 py-3 text-ink
+                        placeholder:text-ink-faint resize-none focus:outline-none focus:ring-2 focus:ring-clay"
                     />
                   </div>
                 </Step>
@@ -231,7 +230,7 @@ export function OnboardingWizard() {
           </div>
 
           {phase === "error" && error && (
-            <p className="mt-4 text-sm text-rose-600" role="alert">
+            <p className="mt-4 rounded-lg border-2 border-berry bg-berry-tint px-3 py-2 text-sm font-semibold text-berry" role="alert">
               {error}
             </p>
           )}
@@ -254,11 +253,11 @@ function Step({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-widest text-accent-600">{eyebrow}</p>
-      <h1 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tighter text-ink leading-none">
+      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-clay-deep">/ {eyebrow}</p>
+      <h1 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight text-ink leading-none">
         {title}
       </h1>
-      <p className="mt-3 text-zinc-500 leading-relaxed max-w-[55ch]">{desc}</p>
+      <p className="mt-3 text-ink-soft leading-relaxed max-w-[55ch]">{desc}</p>
       <div className="mt-7">{children}</div>
     </div>
   );
@@ -278,21 +277,18 @@ function SelectCard({
   return (
     <button
       onClick={onClick}
-      className={`text-left rounded-2xl border p-4 transition-all active:scale-[0.99] ${
-        selected
-          ? "border-accent-400 bg-accent-50 ring-2 ring-accent-400/40"
-          : "border-zinc-200 bg-white hover:border-zinc-300"
-      }`}
+      className={`text-left rounded-xl border-2 border-line p-4 transition-transform active:scale-[0.99]
+        ${selected ? "bg-clay-tint shadow-hard" : "bg-cream press"}`}
     >
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-ink">{title}</span>
+        <span className="font-bold text-ink">{title}</span>
         {selected && (
-          <span className="grid place-items-center w-5 h-5 rounded-full bg-accent-500 text-white">
-            <Check size={12} weight="bold" />
+          <span className="grid place-items-center w-6 h-6 rounded-full bg-clay text-cream border-2 border-line">
+            <Check size={13} weight="bold" />
           </span>
         )}
       </div>
-      <p className="mt-1 text-sm text-zinc-500">{desc}</p>
+      <p className="mt-1 text-sm text-ink-soft">{desc}</p>
     </button>
   );
 }
@@ -307,18 +303,22 @@ function GeneratingScreen({ skill }: { skill: string }) {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] grid place-items-center px-6 text-center">
-      <div>
+    <div className="relative min-h-[100dvh] grid place-items-center px-6 text-center overflow-hidden">
+      <Blob spot="clay" shape={0} spin={12} className="w-80 h-80 -top-20 -left-16 opacity-75" />
+      <Blob spot="teal" shape={2} motion="float" className="w-72 h-72 -bottom-16 -right-12 opacity-65" />
+      <Blob spot="sun" shape={1} className="w-44 h-44 top-[18%] right-[14%] opacity-70" />
+
+      <div className="relative z-10">
         <motion.div
-          animate={{ rotate: [0, -8, 8, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="mx-auto grid place-items-center w-20 h-20 rounded-3xl bg-ink text-accent-400"
+          animate={{ rotate: [0, -8, 8, 0], y: [0, -10, 0] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+          className="mx-auto grid place-items-center w-24 h-24 rounded-2xl bg-clay text-cream border-2 border-line shadow-hard-lg"
         >
-          <Lighthouse size={40} weight="fill" />
+          <Lighthouse size={44} weight="fill" />
         </motion.div>
-        <h1 className="mt-8 text-2xl sm:text-3xl font-bold tracking-tighter text-ink">
+        <h1 className="mt-8 text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
           Building your path for{" "}
-          <span className="text-accent-600">{skill}</span>
+          <span className="text-clay-deep">{skill}</span>
         </h1>
         <div className="mt-4 h-6">
           <AnimatePresence mode="wait">
@@ -328,13 +328,17 @@ function GeneratingScreen({ skill }: { skill: string }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.4 }}
-              className="text-zinc-500"
+              className="font-medium text-ink-soft"
             >
               {GENERATING_MESSAGES[msgIndex]}
             </motion.p>
           </AnimatePresence>
         </div>
-        <p className="mt-8 text-xs text-zinc-400 font-mono">This usually takes 10–20 seconds</p>
+        <div className="mt-8 flex justify-center">
+          <Stamp spin={-6} tone="ink" className="w-24 h-24 bg-cream shadow-hard-sm">
+            ~10–20<br />seconds
+          </Stamp>
+        </div>
       </div>
     </div>
   );

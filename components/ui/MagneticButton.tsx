@@ -4,8 +4,8 @@ import { useRef } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import type { ReactNode, MouseEvent } from "react";
 
-// Magnetic CTA — pulls toward the cursor. Uses motion values (NOT useState)
-// so pointer moves never trigger React re-renders. MOTION_INTENSITY 6.
+// Magnetic CTA — pulls toward the cursor via motion values (never useState, so
+// pointer moves don't re-render). Hard ink shadow stays put for the sticker feel.
 export function MagneticButton({
   children,
   onClick,
@@ -18,8 +18,8 @@ export function MagneticButton({
   const ref = useRef<HTMLButtonElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const springX = useSpring(x, { stiffness: 200, damping: 18 });
-  const springY = useSpring(y, { stiffness: 200, damping: 18 });
+  const springX = useSpring(x, { stiffness: 200, damping: 15 });
+  const springY = useSpring(y, { stiffness: 200, damping: 15 });
 
   function handleMove(e: MouseEvent<HTMLButtonElement>) {
     const el = ref.current;
@@ -27,8 +27,8 @@ export function MagneticButton({
     const rect = el.getBoundingClientRect();
     const relX = e.clientX - (rect.left + rect.width / 2);
     const relY = e.clientY - (rect.top + rect.height / 2);
-    x.set(relX * 0.3);
-    y.set(relY * 0.3);
+    x.set(relX * 0.35);
+    y.set(relY * 0.35);
   }
 
   function reset() {
@@ -43,11 +43,12 @@ export function MagneticButton({
       onMouseLeave={reset}
       onClick={onClick}
       style={{ x: springX, y: springY }}
-      whileTap={{ scale: 0.96 }}
-      className={`inline-flex items-center justify-center gap-2 rounded-2xl h-14 px-8 text-base
-        font-semibold tracking-tight bg-ink text-canvas
-        shadow-[0_8px_24px_-8px_rgba(28,25,23,0.5)] focus-visible:outline-none
-        focus-visible:ring-2 focus-visible:ring-accent-400 ${className}`}
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.95 }}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl h-14 px-8 text-base
+        font-extrabold uppercase tracking-wide bg-clay text-cream border-2 border-transparent shadow-hard-clay
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay/40
+        focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${className}`}
     >
       {children}
     </motion.button>

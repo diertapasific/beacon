@@ -4,19 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  Lighthouse,
-  MagicWand,
-  Flame,
-  Clock,
-  Brain,
-  ChartLineUp,
-  ArrowRight,
-  Check,
-  Sparkle,
+  ArrowRight, Check, Flame, Clock, BookOpen, Lightbulb,
+  MagicWand, ChartLineUp, Repeat, Lighthouse,
 } from "@phosphor-icons/react";
 import { Button } from "../ui/Button";
 import { MagneticButton } from "../ui/MagneticButton";
 import { Logo } from "../ui/Logo";
+import { Blob, Stamp } from "../ui/Riso";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -25,15 +19,17 @@ const fadeUp = {
 
 export function Landing() {
   const router = useRouter();
+  const start = () => router.push("/auth/signup");
   return (
     <div className="overflow-x-hidden">
       <SiteHeader />
-      <Hero onStart={() => router.push("/auth/signup")} />
-      <Explainer />
+      <Hero onStart={start} />
+      <SkillIndex />
+      <Statement />
       <Features />
-      <HowItWorks />
-      <SocialProof />
-      <FooterCTA onStart={() => router.push("/auth/signup")} />
+      <HowItWorks onStart={start} />
+      <Stats />
+      <FooterCTA onStart={start} />
       <SiteFooter />
     </div>
   );
@@ -41,14 +37,11 @@ export function Landing() {
 
 function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-200/60 bg-canvas/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 border-b-2 border-line bg-paper/90 backdrop-blur-md">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
         <Logo />
-        <nav className="flex items-center gap-2 sm:gap-4">
-          <Link
-            href="/auth/login"
-            className="text-sm font-medium text-zinc-600 hover:text-ink transition-colors px-3 py-2"
-          >
+        <nav className="flex items-center gap-2 sm:gap-3">
+          <Link href="/auth/login" className="text-sm font-semibold text-ink hover:text-clay-deep transition-colors px-3 py-2">
             Log in
           </Link>
           <Link href="/auth/signup">
@@ -60,247 +53,159 @@ function SiteHeader() {
   );
 }
 
+// ── Hero ──────────────────────────────────────────────────────────────────────
 function Hero({ onStart }: { onStart: () => void }) {
   return (
-    <section className="relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-8 items-center">
-        {/* Left — content (asymmetric, left-aligned) */}
-        <motion.div initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.1 } } }}>
+    <section className="relative overflow-hidden">
+      <Blob spot="clay" shape={0} spin={12} className="w-[26rem] h-[26rem] -top-28 -right-24 opacity-80" />
+      <Blob spot="teal" shape={2} spin={-10} motion="float" className="w-72 h-72 top-40 -left-28 opacity-70" />
+      <Blob spot="sun" shape={1} className="w-44 h-44 bottom-[-3rem] right-[18%] opacity-80" />
+
+      <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-14 pb-16 sm:pt-20 sm:pb-24
+        grid lg:grid-cols-[1.08fr_0.92fr] gap-12 lg:gap-10 items-center">
+        <motion.div initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.09 } } }}>
           <motion.span
             variants={fadeUp}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-medium text-zinc-600"
+            className="inline-flex items-center gap-2 rounded-full border-2 border-line bg-cream px-3.5 py-1.5
+              font-mono text-[11px] font-bold uppercase tracking-wide text-ink shadow-hard-sm"
           >
-            <Sparkle size={14} weight="fill" className="text-accent-500" />
-            AI-built paths for any skill
+            <Flame size={13} weight="fill" className="text-streak" />
+            An AI tutor for any skill
           </motion.span>
+
           <motion.h1
             variants={fadeUp}
-            className="mt-6 text-5xl sm:text-6xl xl:text-7xl font-bold tracking-tighter leading-[0.95] text-ink"
+            className="mt-6 text-5xl sm:text-6xl xl:text-7xl font-extrabold tracking-[-0.03em] leading-[0.92] text-ink"
           >
-            Learn anything,
+            Learn anything
             <br />
-            <span className="text-accent-500">90 seconds</span> a day.
+            in{" "}
+            <span className="relative inline-block">
+              <span className="relative z-10 text-cream px-2">ninety</span>
+              <span aria-hidden className="absolute inset-0 -rotate-1 bg-clay border-2 border-line rounded-md" />
+            </span>{" "}
+            seconds.
           </motion.h1>
-          <motion.p
-            variants={fadeUp}
-            className="mt-6 text-lg text-zinc-600 leading-relaxed max-w-[52ch]"
-          >
-            Name a skill. Beacon writes you a four-week path, then drips it out as
-            bite-sized lessons with quizzes, streaks, and XP that pull you back tomorrow.
+
+          <motion.p variants={fadeUp} className="mt-6 text-lg text-ink-soft leading-relaxed max-w-[48ch]">
+            Name a skill. Beacon drafts a four-week path, then hands it over one short lesson
+            at a time — quizzes, streaks, and XP that make tomorrow easy.
           </motion.p>
+
           <motion.div variants={fadeUp} className="mt-9 flex flex-wrap items-center gap-3">
             <MagneticButton onClick={onStart}>
-              Start learning free <ArrowRight size={18} weight="bold" />
+              Start learning <ArrowRight size={18} weight="bold" />
             </MagneticButton>
             <Link href="#how">
-              <Button variant="secondary" size="lg">
-                How it works
-              </Button>
+              <Button variant="secondary" size="lg">How it works</Button>
             </Link>
           </motion.div>
-          <motion.p variants={fadeUp} className="mt-5 text-sm text-zinc-400">
-            No card required. Pick a skill and start in 30 seconds.
+
+          <motion.p variants={fadeUp} className="mt-5 font-mono text-xs uppercase tracking-wide text-ink-faint">
+            Free to start · no card · pick a skill in 30 seconds
           </motion.p>
         </motion.div>
 
-        {/* Right — product peek */}
-        <HeroVisual />
+        <HeroPreview />
       </div>
     </section>
   );
 }
 
-function HeroVisual() {
+// A miniature of the real workspace — a sticker pinned to the page.
+function HeroPreview() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 30, rotate: 2 }}
+      animate={{ opacity: 1, y: 0, rotate: 1.5 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       className="relative"
     >
-      <motion.div
-        animate={{ y: [0, -10, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="rounded-[2rem] bg-ink text-canvas p-7 shadow-[0_40px_80px_-30px_rgba(28,25,23,0.5)]"
-      >
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 text-accent-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
-            <Brain size={14} weight="bold" /> Concept
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
-            <Clock size={14} /> 90s
-          </span>
+      <div className="rounded-2xl border-2 border-line bg-cream p-5 sm:p-6 shadow-hard-lg">
+        <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint">
+          <span>Curriculum</span>
+          <span>56% done</span>
         </div>
-        <h3 className="mt-4 text-2xl font-bold tracking-tighter leading-tight">
-          Gradient descent walks downhill
-        </h3>
-        <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
-          Picture a ball on a hilly surface. Each step it rolls toward the steepest
-          drop — that’s the model nudging its weights to shrink error.
-        </p>
-        <div className="mt-5 flex items-center gap-1.5">
-          <Flame size={18} weight="fill" className="text-accent-400" />
-          <span className="font-mono text-sm">11</span>
-          <span className="text-xs text-zinc-500">day streak</span>
-          <span className="ml-auto font-mono text-sm text-accent-300">+50 XP</span>
-        </div>
-      </motion.div>
+        <h3 className="mt-2 text-2xl font-extrabold tracking-tight text-ink">Machine Learning</h3>
 
-      <motion.div
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-        className="absolute -bottom-6 -left-4 sm:-left-8 rounded-2xl bg-white border border-zinc-200 p-4 shadow-xl w-44"
-      >
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Level 7</p>
-        <div className="mt-2 h-2 rounded-full bg-zinc-200 overflow-hidden">
-          <div className="h-full w-[68%] rounded-full bg-gradient-to-r from-accent-400 to-accent-500" />
+        <div className="mt-4 grid grid-cols-3 border-2 border-line rounded-lg overflow-hidden divide-x-2 divide-line">
+          <MiniStat label="Streak" value="11" tint="bg-sun-tint" />
+          <MiniStat label="Level" value="7" tint="bg-teal-tint" />
+          <MiniStat label="XP" value="2,340" tint="bg-clay-tint" />
         </div>
-        <p className="mt-1.5 text-xs text-zinc-400 font-mono">320 XP to L8</p>
+
+        <div className="mt-4 relative rounded-lg border-2 border-line bg-clay-tint p-4">
+          <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wide text-clay-deep">
+            <span className="w-1.5 h-1.5 rounded-full bg-clay animate-pulse" /> Up next
+          </p>
+          <p className="mt-1 text-sm font-bold text-ink">Gradient descent walks downhill</p>
+        </div>
+
+        <div className="mt-3 divide-y-2 divide-ink/15 border-t-2 border-ink/15">
+          {[
+            { t: "What a model actually is", s: "94" },
+            { t: "Loss, in one picture", s: "88" },
+          ].map((r) => (
+            <div key={r.t} className="flex items-center gap-3 py-2.5">
+              <span className="grid place-items-center w-5 h-5 rounded-full bg-teal text-cream border-2 border-line">
+                <Check size={10} weight="bold" />
+              </span>
+              <span className="flex-1 text-xs text-ink-soft truncate">{r.t}</span>
+              <span className="font-mono text-[10px] font-bold text-teal-deep">{r.s}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Floating postmark */}
+      <motion.div
+        animate={{ y: [0, -9, 0] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -bottom-6 -left-4 sm:-left-7"
+      >
+        <Stamp spin={-12} tone="sun" className="w-20 h-20 bg-cream shadow-hard-sm">
+          <span className="flex flex-col items-center leading-none">
+            <Flame size={16} weight="fill" className="text-streak mb-0.5" />
+            Day 11
+            <span className="text-ink-faint">streak</span>
+          </span>
+        </Stamp>
       </motion.div>
     </motion.div>
   );
 }
 
-function Explainer() {
+function MiniStat({ label, value, tint }: { label: string; value: string; tint: string }) {
   return (
-    <section className="border-y border-zinc-200/60 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20 grid lg:grid-cols-[0.8fr_1.2fr] gap-8 items-center">
-        <motion.h2
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-80px" }}
-          className="text-3xl sm:text-4xl font-bold tracking-tighter text-ink leading-none"
-        >
-          Courses are too big.
-          <br />
-          Beacon is the opposite.
-        </motion.h2>
-        <motion.div
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-80px" }}
-          className="text-lg text-zinc-600 leading-relaxed max-w-[60ch]"
-        >
-          <p>
-            Most learning fails because it asks for an hour you don’t have. Beacon asks for
-            ninety seconds. One idea, one example, one quick check — then you’re done for the
-            day, streak intact.
-          </p>
-          <p className="mt-4">
-            Do two and the next earns bonus XP. Skip a day and you only lose the streak, never
-            the progress. Small enough to actually keep.
-          </p>
-        </motion.div>
-      </div>
-    </section>
+    <div className={`px-3 py-2.5 ${tint}`}>
+      <p className="font-mono text-[9px] font-bold uppercase tracking-wide text-ink-soft">{label}</p>
+      <p className="mt-0.5 font-mono text-sm font-bold text-ink tabular-nums">{value}</p>
+    </div>
   );
 }
 
-const FEATURES = [
-  {
-    icon: MagicWand,
-    title: "Any skill, mapped in seconds",
-    desc: "Type 'fermentation' or 'options trading' — Beacon designs a coherent four-week curriculum, sequenced from first principles.",
-    wide: true,
-  },
-  {
-    icon: Clock,
-    title: "90-second lessons",
-    desc: "One concept at a time. Read it on a coffee break.",
-    wide: false,
-  },
-  {
-    icon: Flame,
-    title: "Streaks that stick",
-    desc: "Daily momentum, milestone rewards, gentle nudges.",
-    wide: false,
-  },
-  {
-    icon: ChartLineUp,
-    title: "XP, levels, and badges",
-    desc: "Every correct answer and finished lesson moves a bar. Fifty levels, eleven badges, one very satisfying climb.",
-    wide: true,
-  },
+// ── Skill index (static — a wall of stamps, not a marquee) ──────────────────
+const SKILLS = [
+  "Machine Learning", "Watercolour", "Negotiation", "Music Theory", "Astrophysics",
+  "Grant Writing", "Chess Openings", "Fermentation", "Typography", "Mandarin",
 ];
 
-function Features() {
+function SkillIndex() {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-      <motion.div
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-80px" }}
-        className="max-w-2xl"
-      >
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent-600">Why it works</p>
-        <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tighter text-ink leading-none">
-          Built to be impossible to quit
-        </h2>
-      </motion.div>
-
-      {/* Asymmetric bento — not a row of equal cards */}
-      <div className="mt-10 grid md:grid-cols-3 gap-4 sm:gap-5">
-        {FEATURES.map((f, i) => (
-          <motion.div
-            key={f.title}
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ delay: i * 0.05 }}
-            whileHover={{ y: -4 }}
-            className={`rounded-[2rem] border border-zinc-200/70 bg-white p-7 sm:p-8
-              shadow-[0_20px_40px_-25px_rgba(0,0,0,0.12)] ${f.wide ? "md:col-span-2" : ""}`}
-          >
-            <span className="grid place-items-center w-12 h-12 rounded-2xl bg-accent-50 text-accent-600 mb-5">
-              <f.icon size={24} weight="bold" />
-            </span>
-            <h3 className="text-xl font-semibold tracking-tight text-ink">{f.title}</h3>
-            <p className="mt-2 text-zinc-600 leading-relaxed max-w-[48ch]">{f.desc}</p>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-const STEPS = [
-  { n: "01", title: "Pick a skill", desc: "Tell Beacon what you want to learn and how much time you have." },
-  { n: "02", title: "Get your path", desc: "An AI instructional designer drafts a four-week, lesson-by-lesson plan." },
-  { n: "03", title: "Learn daily", desc: "Open the app, finish a lesson, pass the quiz, keep the streak." },
-];
-
-function HowItWorks() {
-  return (
-    <section id="how" className="border-y border-zinc-200/60 bg-white scroll-mt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-        <motion.h2
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-80px" }}
-          className="text-3xl sm:text-4xl font-bold tracking-tighter text-ink leading-none"
-        >
-          Three steps. Then a habit.
-        </motion.h2>
-        <div className="mt-12 grid md:grid-cols-3 gap-8 md:gap-6 relative">
-          {STEPS.map((s, i) => (
-            <motion.div
-              key={s.n}
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ delay: i * 0.08 }}
-              className="relative"
+    <section className="border-y-2 border-line bg-paper-2">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-8">
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-4">
+          A few of the paths people have mapped
+        </p>
+        <div className="flex flex-wrap gap-2.5">
+          {SKILLS.map((s, i) => (
+            <span
+              key={s}
+              className={`inline-flex items-center gap-2 rounded-full border-2 border-line px-3.5 py-1.5 text-sm font-semibold text-ink
+                ${i % 3 === 0 ? "bg-clay-tint" : i % 3 === 1 ? "bg-teal-tint" : "bg-sun-tint"}`}
             >
-              <span className="font-mono text-5xl font-bold text-accent-200">{s.n}</span>
-              <h3 className="mt-3 text-xl font-semibold tracking-tight text-ink">{s.title}</h3>
-              <p className="mt-2 text-zinc-600 leading-relaxed max-w-[40ch]">{s.desc}</p>
-            </motion.div>
+              {s}
+            </span>
           ))}
         </div>
       </div>
@@ -308,63 +213,282 @@ function HowItWorks() {
   );
 }
 
-const STATS = [
-  { value: "14,302", label: "lessons finished" },
-  { value: "11 days", label: "median active streak" },
-  { value: "2,600+", label: "skills mapped" },
-];
-
-function SocialProof() {
+// ── Statement ─────────────────────────────────────────────────────────────────
+function Statement() {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-      <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200">
-        {STATS.map((s, i) => (
-          <motion.div
-            key={s.label}
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.08 }}
-            className="px-6 py-6 sm:py-2 text-center"
-          >
-            <p className="font-mono text-4xl font-bold tracking-tight text-ink">{s.value}</p>
-            <p className="mt-1 text-sm text-zinc-500">{s.label}</p>
-          </motion.div>
-        ))}
-      </div>
-      <p className="mt-6 text-center text-xs text-zinc-400">Illustrative — Beacon is brand new.</p>
+    <section className="max-w-6xl mx-auto px-5 sm:px-8 py-20 sm:py-28 grid lg:grid-cols-[0.8fr_1.2fr] gap-8 lg:gap-12 items-start">
+      <motion.p variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}
+        className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-clay-deep">
+        / The problem with courses
+      </motion.p>
+      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
+        <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-ink leading-[1.04]">
+          A course wants an hour you don&rsquo;t have. Beacon asks for{" "}
+          <span className="text-clay-deep underline decoration-2 decoration-clay underline-offset-4">ninety seconds</span>.
+        </h2>
+        <p className="mt-6 text-lg text-ink-soft leading-relaxed max-w-[58ch]">
+          One idea, one example, one quick check — then you&rsquo;re done for the day, streak intact.
+          Do a second and the next earns bonus XP. Miss a day and you lose the streak, never the
+          progress. Small enough to actually keep.
+        </p>
+      </motion.div>
     </section>
   );
 }
 
+// ── Features (zigzag) ─────────────────────────────────────────────────────────
+function Features() {
+  return (
+    <section className="border-t-2 border-line bg-paper-2">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-20 sm:py-24 flex flex-col gap-20 sm:gap-28">
+        <FeatureRow
+          n="01" spot="clay" icon={MagicWand}
+          eyebrow="Instant curriculum"
+          title="Type a skill. Get a real path."
+          body="Beacon designs a coherent four-week plan, sequenced from first principles — not a pile of links. Generated once, yours forever."
+          visual={<MockPath />}
+        />
+        <FeatureRow
+          reverse n="02" spot="teal" icon={Lightbulb}
+          eyebrow="90-second lessons"
+          title="One concept, then prove it stuck."
+          body="Each lesson is a single idea with a concrete example, then a short quiz. Pass at 80% to move on. No filler, no fluff."
+          visual={<MockQuiz />}
+        />
+        <FeatureRow
+          n="03" spot="sun" icon={ChartLineUp}
+          eyebrow="Momentum, built in"
+          title="Streaks, XP, and badges that pull you back."
+          body="Every answer moves a bar. Fifty levels, eleven badges, and a streak that makes opening the app the easy choice tomorrow."
+          visual={<MockProgress />}
+        />
+      </div>
+    </section>
+  );
+}
+
+function FeatureRow({
+  n, spot, icon: Icon, eyebrow, title, body, visual, reverse,
+}: {
+  n: string; spot: "clay" | "teal" | "sun"; icon: React.ElementType;
+  eyebrow: string; title: string; body: string; visual: React.ReactNode; reverse?: boolean;
+}) {
+  const iconBg = spot === "clay" ? "bg-clay-tint text-clay-deep" : spot === "teal" ? "bg-teal-tint text-teal-deep" : "bg-sun-tint text-ink";
+  return (
+    <motion.div
+      variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
+      className="grid lg:grid-cols-2 gap-8 lg:gap-14 items-center"
+    >
+      <div className={reverse ? "lg:order-2" : ""}>
+        <div className="flex items-center gap-3 mb-5">
+          <span className="font-mono text-5xl font-extrabold text-ink/15 leading-none">{n}</span>
+          <span className={`grid place-items-center w-11 h-11 rounded-lg border-2 border-line ${iconBg}`}>
+            <Icon size={22} weight="bold" />
+          </span>
+        </div>
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-clay-deep">{eyebrow}</p>
+        <h3 className="mt-2 text-2xl sm:text-4xl font-extrabold tracking-tight text-ink leading-tight max-w-[18ch]">{title}</h3>
+        <p className="mt-3 text-ink-soft leading-relaxed max-w-[46ch]">{body}</p>
+      </div>
+      <div className={reverse ? "lg:order-1" : ""}>{visual}</div>
+    </motion.div>
+  );
+}
+
+function MockShell({ children, tilt = -1.2 }: { children: React.ReactNode; tilt?: number }) {
+  return (
+    <motion.div
+      whileHover={{ rotate: 0, y: -2 }}
+      style={{ rotate: tilt }}
+      className="rounded-2xl border-2 border-line bg-cream p-5 sm:p-6 shadow-hard-lg"
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function MockPath() {
+  const weeks = [
+    { w: "01", t: "Foundations", done: true },
+    { w: "02", t: "Core mechanics", done: false },
+    { w: "03", t: "Going deeper", done: false },
+    { w: "04", t: "Putting it together", done: false },
+  ];
+  return (
+    <MockShell tilt={1.2}>
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint mb-3">Your 4-week path</p>
+      <div className="divide-y-2 divide-ink/15 border-y-2 border-ink/15">
+        {weeks.map((wk) => (
+          <div key={wk.w} className="flex items-center gap-3 py-3">
+            <span className={`font-mono text-xs font-bold ${wk.done ? "text-teal-deep" : "text-ink-faint"}`}>{wk.w}</span>
+            <span className="flex-1 text-sm font-medium text-ink">{wk.t}</span>
+            {wk.done
+              ? <span className="grid place-items-center w-5 h-5 rounded-full bg-teal text-cream border-2 border-line"><Check size={10} weight="bold" /></span>
+              : <span className="font-mono text-[10px] text-ink-faint">6 lessons</span>}
+          </div>
+        ))}
+      </div>
+    </MockShell>
+  );
+}
+
+function MockQuiz() {
+  const opts = [
+    { t: "It minimises a loss function", correct: true },
+    { t: "It memorises the data", correct: false },
+    { t: "It sorts the inputs", correct: false },
+  ];
+  return (
+    <MockShell>
+      <p className="flex gap-2 text-sm font-bold text-ink">
+        <span className="font-mono text-clay-deep">1.</span>
+        <span>What does training actually do?</span>
+      </p>
+      <div className="mt-4 grid gap-2.5">
+        {opts.map((o) => (
+          <div
+            key={o.t}
+            className={`flex items-center justify-between gap-3 rounded-lg border-2 px-3.5 py-2.5 text-sm font-medium ${
+              o.correct ? "border-line bg-teal-tint text-teal-deep" : "border-ink/20 bg-paper text-ink-soft"
+            }`}
+          >
+            <span>{o.t}</span>
+            {o.correct && <span className="grid place-items-center w-5 h-5 rounded-full bg-teal text-cream border-2 border-line"><Check size={10} weight="bold" /></span>}
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 flex items-center gap-1.5 font-mono text-[11px] text-ink-faint">
+        <Clock size={12} /> ~90 seconds · pass at 80%
+      </p>
+    </MockShell>
+  );
+}
+
+function MockProgress() {
+  return (
+    <MockShell tilt={1.2}>
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-2 text-sm font-bold text-ink">
+          <span className="grid place-items-center w-7 h-7 rounded-lg bg-sun text-ink font-mono text-xs font-bold border-2 border-line">7</span>
+          Level 7
+        </span>
+        <span className="font-mono text-xs font-bold text-ink-soft">2,340 XP</span>
+      </div>
+      <div className="mt-3 h-3 rounded-full bg-paper border-2 border-line overflow-hidden">
+        <div className="h-full w-[68%] bg-clay" />
+      </div>
+      <div className="mt-5 grid grid-cols-4 gap-2.5">
+        {[
+          { i: Flame, on: true }, { i: BookOpen, on: true }, { i: Repeat, on: true }, { i: ChartLineUp, on: false },
+        ].map(({ i: Ic, on }, idx) => (
+          <div key={idx} className={`grid place-items-center aspect-square rounded-lg border-2 border-line ${on ? "bg-clay text-cream" : "bg-paper text-ink-faint"}`}>
+            <Ic size={18} weight={on ? "fill" : "regular"} />
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 font-mono text-[10px] font-bold uppercase tracking-wide text-ink-faint">3 of 11 badges earned</p>
+    </MockShell>
+  );
+}
+
+// ── How it works ────────────────────────────────────────────────────────────
+const STEPS = [
+  { n: "01", title: "Pick a skill", desc: "Tell Beacon what you want to learn and how much time you have." },
+  { n: "02", title: "Get your path", desc: "An AI instructional designer drafts a four-week, lesson-by-lesson plan in seconds." },
+  { n: "03", title: "Learn daily", desc: "Open the app, finish a lesson, pass the quiz, keep the streak alive." },
+];
+
+function HowItWorks({ onStart }: { onStart: () => void }) {
+  return (
+    <section id="how" className="scroll-mt-16 max-w-6xl mx-auto px-5 sm:px-8 py-20 sm:py-28">
+      <motion.h2
+        variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}
+        className="text-3xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none"
+      >
+        Three steps. Then a habit.
+      </motion.h2>
+      <div className="mt-12 grid md:grid-cols-3 gap-6 md:gap-7 relative">
+        <div className="hidden md:block absolute top-8 left-[16%] right-[16%] h-0.5 border-t-2 border-dashed border-line" />
+        {STEPS.map((s, i) => (
+          <motion.div
+            key={s.n}
+            variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
+            transition={{ delay: i * 0.08 }}
+            className="relative rounded-2xl border-2 border-line bg-cream p-6 shadow-hard"
+          >
+            <span className="relative grid place-items-center w-12 h-12 rounded-full bg-clay text-cream border-2 border-line
+              font-mono text-base font-bold shadow-hard-sm">
+              {s.n}
+            </span>
+            <h3 className="mt-4 text-xl font-extrabold tracking-tight text-ink">{s.title}</h3>
+            <p className="mt-2 text-ink-soft leading-relaxed">{s.desc}</p>
+          </motion.div>
+        ))}
+      </div>
+      <div className="mt-10 flex justify-center">
+        <MagneticButton onClick={onStart}>
+          Map your first path <ArrowRight size={18} weight="bold" />
+        </MagneticButton>
+      </div>
+    </section>
+  );
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+const STATS = [
+  { value: "14,302", label: "lessons finished", tint: "bg-clay-tint" },
+  { value: "11 days", label: "median active streak", tint: "bg-teal-tint" },
+  { value: "2,600+", label: "skills mapped", tint: "bg-sun-tint" },
+];
+
+function Stats() {
+  return (
+    <section className="border-y-2 border-line bg-paper-2">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-14 grid sm:grid-cols-3 gap-5">
+        {STATS.map((s, i) => (
+          <motion.div
+            key={s.label}
+            variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
+            transition={{ delay: i * 0.08 }}
+            className={`rounded-2xl border-2 border-line ${s.tint} px-6 py-7 text-center shadow-hard`}
+          >
+            <p className="font-display text-2xl sm:text-3xl text-ink tabular-nums">{s.value}</p>
+            <p className="mt-1 text-sm font-semibold text-ink-soft">{s.label}</p>
+          </motion.div>
+        ))}
+      </div>
+      <p className="pb-10 text-center font-mono text-[11px] uppercase tracking-wide text-ink-faint">Illustrative — Beacon is brand new.</p>
+    </section>
+  );
+}
+
+// ── Footer CTA ──────────────────────────────────────────────────────────────
 function FooterCTA({ onStart }: { onStart: () => void }) {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+    <section className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
       <motion.div
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-80px" }}
-        className="relative rounded-[2.5rem] bg-ink text-canvas px-8 sm:px-16 py-16 sm:py-20 overflow-hidden text-center"
+        variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}
+        className="relative rounded-3xl border-2 border-clay bg-paper-2 px-8 sm:px-16 py-16 sm:py-20 text-center overflow-hidden shadow-hard-lg"
       >
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[28rem] h-[28rem] rounded-full bg-accent-500/20 blur-3xl pointer-events-none" />
-        <div className="relative">
-          <span className="grid place-items-center w-14 h-14 rounded-2xl bg-accent-400 text-ink mx-auto mb-6">
-            <Lighthouse size={28} weight="fill" />
+        <Blob spot="clay" shape={1} className="w-64 h-64 -top-20 -left-16 opacity-90" />
+        <Blob spot="teal" shape={3} motion="float" className="w-52 h-52 -bottom-16 -right-12 opacity-80" />
+
+        <div className="relative z-10">
+          <span className="grid place-items-center w-16 h-16 rounded-xl bg-clay text-cream border-2 border-line mx-auto mb-6 shadow-hard-sm">
+            <Lighthouse size={32} weight="fill" />
           </span>
-          <h2 className="text-3xl sm:text-5xl font-bold tracking-tighter leading-none max-w-[20ch] mx-auto">
-            Pick a skill and start in 30 seconds.
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none max-w-[20ch] mx-auto">
+            Insert coin. Start in 30 seconds.
           </h2>
           <div className="mt-8 flex justify-center">
-            <MagneticButton onClick={onStart} className="bg-accent-400 text-ink">
+            <MagneticButton onClick={onStart}>
               Start learning free <ArrowRight size={18} weight="bold" />
             </MagneticButton>
           </div>
-          <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-zinc-400">
+          <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 font-mono text-sm text-ink-soft">
             {["Free to start", "No card required", "Any skill"].map((t) => (
               <li key={t} className="inline-flex items-center gap-1.5">
-                <Check size={14} weight="bold" className="text-accent-400" /> {t}
+                <Check size={14} weight="bold" className="text-teal-deep" /> {t}
               </li>
             ))}
           </ul>
@@ -376,10 +500,10 @@ function FooterCTA({ onStart }: { onStart: () => void }) {
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-zinc-200/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <footer className="border-t-2 border-line bg-paper-2">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <Logo />
-        <p className="text-sm text-zinc-400">Beacon · learn anything, 90 seconds at a time</p>
+        <p className="font-mono text-xs uppercase tracking-wide text-ink-faint">Beacon · est. 2026 · built for the curious</p>
       </div>
     </footer>
   );

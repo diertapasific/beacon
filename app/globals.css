@@ -1,45 +1,126 @@
 @import "tailwindcss";
 
+/* ───────────────────────────────────────────────────────────────────────────
+   PLAYFUL / DUOLINGO — clean white surfaces, soft light-gray structure, big
+   rounded shapes, and the signature 3D "push" button (a coloured bottom edge
+   that depresses on click). Fox-orange primary, macaw blue, bee yellow,
+   cardinal red. Rounded Nunito throughout.
+   ─────────────────────────────────────────────────────────────────────────── */
+
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-nunito);
+  --font-sans:    var(--font-nunito);
+  --font-mono:    var(--font-nunito);
 
-  /* Surface */
-  --color-canvas: #fafaf9;
-  --color-ink:    #1c1917;
+  /* Generous, friendly corners */
+  --radius-lg:  0.75rem;
+  --radius-xl:  1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
 
-  /* Amber accent scale */
-  --color-accent-50:  #fffbeb;
-  --color-accent-100: #fef3c7;
-  --color-accent-200: #fde68a;
-  --color-accent-300: #fcd34d;
-  --color-accent-400: #fbbf24;
-  --color-accent-500: #f59e0b;
-  --color-accent-600: #d97706;
-  --color-accent-700: #b45309;
+  /* Surfaces */
+  --color-paper:    #ffffff; /* main canvas */
+  --color-paper-2:  #f7f7f7; /* recessed band (Polar) */
+  --color-cream:    #ffffff; /* raised card */
+
+  /* Text + structure */
+  --color-ink:      #3c3c3c; /* primary text (Eel) */
+  --color-ink-soft: #777777; /* secondary text (Wolf) */
+  --color-ink-faint:#afafaf; /* tertiary / captions (Hare) */
+  --color-line:     #e5e5e5; /* structural borders + dividers (Swan) */
+
+  /* Fox orange — primary */
+  --color-clay:      #ff9600; /* fills */
+  --color-clay-deep: #cc7800; /* 3D bottom + orange text on white */
+  --color-clay-tint: #fff0d3; /* light orange wash (selected) */
+
+  /* Macaw blue — secondary / info */
+  --color-teal:      #1cb0f6;
+  --color-teal-deep: #1899d6;
+  --color-teal-tint: #ddf4ff;
+
+  /* Bee yellow — XP / highlight */
+  --color-sun:       #ffc800;
+  --color-sun-tint:  #fff4d6;
+
+  /* Cardinal red — error / wrong */
+  --color-berry:     #ff4b4b;
+  --color-berry-tint:#ffdfe0;
+
+  /* Fox orange — streak flames (same hue as primary) */
+  --color-streak:    #ff9600;
+
+  /* Neutral 3D drop edge for cards / white buttons */
+  --color-shadow:    #e5e5e5;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   overflow-x: clip;
-  background: var(--color-canvas);
+  background: var(--color-paper);
   color: var(--color-ink);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), ui-rounded, system-ui, sans-serif;
 }
 
-@keyframes shimmer {
+::selection {
+  background: var(--color-clay);
+  color: #ffffff;
+}
+
+/* ── 3D "push" shadows — a solid coloured bottom edge, no blur ─────────────── */
+.shadow-hard      { box-shadow: 0 4px 0 0 var(--color-shadow); }
+.shadow-hard-sm   { box-shadow: 0 2px 0 0 var(--color-shadow); }
+.shadow-hard-lg   { box-shadow: 0 6px 0 0 var(--color-shadow); }
+.shadow-hard-clay { box-shadow: 0 4px 0 0 var(--color-clay-deep); }
+.shadow-hard-teal { box-shadow: 0 4px 0 0 var(--color-teal-deep); }
+.shadow-hard-sun  { box-shadow: 0 4px 0 0 #e0a400; }
+
+/* Press — Duolingo button physics: brighten on hover, sink into the edge on
+   click. The :active box-shadow (specificity 0,2,0) overrides the resting
+   shadow-hard* class (0,1,0), so the button visibly "presses down". */
+.press {
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+}
+.press:hover  { filter: brightness(1.05); }
+.press:active { transform: translateY(3px); box-shadow: 0 1px 0 0 var(--color-shadow); }
+
+.press-clay:hover  { filter: brightness(1.05); }
+.press-clay:active { transform: translateY(3px); box-shadow: 0 1px 0 0 var(--color-clay-deep); }
+
+/* ── Perpetual motion (CSS only — never re-renders React) ────────────────────
+   Drives the soft pastel ambient shapes in ui/Riso.tsx. */
+@keyframes riso-float {
+  0%, 100% { transform: translateY(0) rotate(var(--spin, 0deg)); }
+  50%      { transform: translateY(-16px) rotate(var(--spin, 0deg)); }
+}
+.riso-float { animation: riso-float 7s ease-in-out infinite; }
+
+@keyframes riso-drift {
+  0%, 100% { transform: translate(0, 0) rotate(var(--spin, 0deg)); }
+  33%      { transform: translate(10px, -12px) rotate(var(--spin, 0deg)); }
+  66%      { transform: translate(-8px, 8px) rotate(var(--spin, 0deg)); }
+}
+.riso-drift { animation: riso-drift 13s ease-in-out infinite; }
+
+@keyframes riso-spin {
+  to { transform: rotate(360deg); }
+}
+.riso-spin { animation: riso-spin 24s linear infinite; }
+
+/* Skeleton shimmer in light-gray tones. */
+@keyframes beacon-shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
-
-.shimmer {
-  background: linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%);
+.beacon-shimmer {
+  background: linear-gradient(90deg, #eeeeee 25%, #f7f7f7 50%, #eeeeee 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: beacon-shimmer 1.5s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shimmer {
-    animation: none;
-    background: #f4f4f5;
-  }
+  .riso-float, .riso-drift, .riso-spin, .beacon-shimmer { animation: none; }
 }

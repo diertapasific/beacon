@@ -1,8 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { getDashboardData } from "@/lib/queries";
-import { Navbar } from "@/components/layout/Navbar";
-import { BottomNav } from "@/components/layout/BottomNav";
+import { AppShell } from "@/components/layout/AppShell";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +20,14 @@ export default async function PathDashboardPage({
   if (!data) notFound();
 
   return (
-    <>
-      <Navbar streak={data.streak.current} level={data.xp.level} pathName={data.path.skill} />
+    <AppShell
+      streak={data.streak.current}
+      level={data.xp.level}
+      pathName={data.path.skill}
+      pathId={pathId}
+      nextLessonId={data.nextLessonId}
+    >
       <Dashboard data={data} />
-      <BottomNav nextLessonId={data.nextLessonId} pathId={pathId} />
-    </>
+    </AppShell>
   );
 }

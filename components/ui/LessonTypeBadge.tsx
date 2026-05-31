@@ -17,10 +17,10 @@ export function LessonTypeBadge({ type, className = "" }: { type: string; classN
   const meta = TYPE_META[type] ?? { label: "Lesson", icon: "Lightbulb" };
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full bg-accent-50 text-accent-700
-        px-3 py-1 text-xs font-semibold uppercase tracking-wide ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border-2 border-line bg-sun-tint text-ink
+        px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wide ${className}`}
     >
-      <Icon name={meta.icon} size={14} weight="bold" />
+      <Icon name={meta.icon} size={13} weight="bold" />
       {meta.label}
     </span>
   );

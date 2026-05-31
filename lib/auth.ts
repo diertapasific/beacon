@@ -50,10 +50,16 @@ export async function getUser(): Promise<User | null> {
   const token = store.get(COOKIE_NAME)?.value;
   if (!token) return null;
 
+  let userId: string;
   try {
-    const { userId } = jwt.verify(token, getSecret()) as { userId: string };
-    return await prisma.user.findUnique({ where: { id: userId } });
+    ({ userId } = jwt.verify(token, getSecret()) as { userId: string });
   } catch {
+    // Only a genuinely missing/invalid/expired token counts as "logged out".
     return null;
   }
+
+  // DB/connectivity errors intentionally propagate. If we swallowed them as
+  // `null`, a valid session would look logged-out and the proxy would bounce
+  // /dashboard -> /auth/login -> /dashboard forever (an infinite redirect loop).
+  return prisma.user.findUnique({ where: { id: userId } });
 }

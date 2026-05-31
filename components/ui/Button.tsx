@@ -6,13 +6,11 @@ import type { ButtonHTMLAttributes } from "react";
 type Variant = "primary" | "secondary" | "ghost";
 type Size = "md" | "lg";
 
+// Duolingo buttons — solid fill with a 3D coloured bottom edge that sinks on press.
 const VARIANTS: Record<Variant, string> = {
-  // Tactile "physical" button — a solid bottom edge that compresses on press.
-  primary:
-    "bg-accent-400 text-ink shadow-[0_4px_0_var(--color-accent-600)] hover:bg-accent-400/90 active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-accent-600)]",
-  secondary:
-    "bg-white text-ink border border-zinc-200 shadow-[0_4px_0_#e4e4e7] hover:border-zinc-300 active:translate-y-[3px] active:shadow-[0_1px_0_#e4e4e7]",
-  ghost: "text-zinc-600 hover:text-ink hover:bg-zinc-100 active:scale-[0.98]",
+  primary:   "bg-clay text-cream border-2 border-transparent shadow-hard-clay press-clay",
+  secondary: "bg-cream text-ink border-2 border-line shadow-hard press",
+  ghost:     "text-ink border-2 border-transparent hover:bg-paper-2 active:scale-[0.97]",
 };
 
 const SIZES: Record<Size, string> = {
@@ -33,10 +31,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       disabled={disabled}
-      className={`inline-flex items-center justify-center gap-2 rounded-2xl font-semibold tracking-tight
-        transition-[transform,box-shadow,background-color] duration-100 ease-out
-        disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none
-        focus-visible:ring-2 focus-visible:ring-ink/20 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold uppercase tracking-wide
+        disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none focus-visible:outline-none
+        focus-visible:ring-2 focus-visible:ring-ink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-paper
+        ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
       {...props}
     >
       {children}
