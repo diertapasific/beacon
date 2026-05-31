@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -73,6 +73,7 @@ export function LessonExperience({
   const [graded, setGraded] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [achievementIndex, setAchievementIndex] = useState(0);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const progressPct = Math.round((lessonNumber / totalLessons) * 100);
   const allAnswered = answers.every((a) => a !== null && a !== "");
@@ -88,15 +89,21 @@ export function LessonExperience({
 
   async function submit() {
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const res = await fetch(`/api/lessons/${lesson.id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers }),
       });
-      const data: SubmitResult = await res.json();
+      const text = await res.text();
+      if (!text) { setSubmitError("Server returned an empty response. Try again."); return; }
+      const data = JSON.parse(text) as SubmitResult & { error?: string };
+      if (!res.ok || data.error) { setSubmitError(data.error ?? `Server error ${res.status}`); return; }
       setResult(data);
-      setGraded(true); // stay on quiz to show per-question feedback
+      setGraded(true);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSubmitting(false);
     }
@@ -209,7 +216,12 @@ export function LessonExperience({
                       {submitting ? "Checking…" : "Submit answers"}
                       {!submitting && <ArrowRight size={18} weight="bold" />}
                     </Button>
-                    {!allAnswered && (
+                    {submitError && (
+                      <p className="mt-2 text-center text-xs text-rose-500 font-mono break-all">
+                        {submitError}
+                      </p>
+                    )}
+                    {!allAnswered && !submitError && (
                       <p className="mt-2 text-center text-xs text-zinc-400">
                         Answer every question to submit
                       </p>
@@ -463,113 +475,226 @@ function MatchingCard({
   submitted: boolean; onSelect: (answer: string) => void;
 }) {
   const opts = Array.isArray(question.options) ? question.options.map(String) : [];
-  const half = Math.floor(opts.length / 2);
-  const terms = opts.slice(0, half);
-  const defs  = opts.slice(half);
 
-  // pairs: { [term]: def }
-  const [pairs, setPairs] = useState<Record<string, string>>(() => {
-    if (selected) {
-      return Object.fromEntries(
-        selected.split(",").map((p) => p.split(":").map(String) as [string, string])
-      );
-    }
-    return {};
-  });
-  const [activeTerm, setActiveTerm] = useState<string | null>(null);
+  const termMatch = String(question.question).match(/terms?[:\s]+(.+)/i);
+  const extractedTerms = termMatch
+    ? termMatch[1].split(/[,;]/).map((s) => s.trim()).filter(Boolean)
+    : [];
+  const isOldFormat = extractedTerms.length > 0 && extractedTerms.length === opts.length;
 
-  const correctPairs = Object.fromEntries(
-    String(question.correct ?? "").split(",").map((p) => {
+  const terms = isOldFormat ? extractedTerms : opts.slice(0, Math.floor(opts.length / 2));
+  const defs  = isOldFormat ? opts            : opts.slice(Math.floor(opts.length / 2));
+
+  // pairs: { termIndex → defIndex }
+  const [pairs, setPairs] = useState<Record<number, number>>(() => {
+    if (!selected) return {};
+    const r: Record<number, number> = {};
+    selected.split(",").forEach((p) => {
       const [t, d] = p.split(":").map((s) => s.trim());
-      return [norm(t), norm(d)];
-    })
-  );
+      const ti = terms.findIndex((x) => norm(x) === norm(t));
+      const di = defs.findIndex((x) => norm(x) === norm(d));
+      if (ti !== -1 && di !== -1) r[ti] = di;
+    });
+    return r;
+  });
+  const [activeTerm, setActiveTerm] = useState<number | null>(null);
 
-  function pickTerm(term: string) {
-    if (submitted) return;
-    setActiveTerm((prev) => (prev === term ? null : term));
+  // SVG connector line positions
+  const containerRef = useRef<HTMLDivElement>(null);
+  const termRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const defRefs  = useRef<(HTMLButtonElement | null)[]>([]);
+  const [pts, setPts] = useState<{ tx: number[]; ty: number[]; dx: number[]; dy: number[] }>({
+    tx: [], ty: [], dx: [], dy: [],
+  });
+
+  useEffect(() => {
+    function measure() {
+      if (!containerRef.current) return;
+      const cr = containerRef.current.getBoundingClientRect();
+      const tx: number[] = [], ty: number[] = [], dx: number[] = [], dy: number[] = [];
+      termRefs.current.forEach((el) => {
+        const r = el?.getBoundingClientRect();
+        tx.push(r ? r.right - cr.left : 0);
+        ty.push(r ? r.top + r.height / 2 - cr.top : 0);
+      });
+      defRefs.current.forEach((el) => {
+        const r = el?.getBoundingClientRect();
+        dx.push(r ? r.left - cr.left : 0);
+        dy.push(r ? r.top + r.height / 2 - cr.top : 0);
+      });
+      setPts({ tx, ty, dx, dy });
+    }
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [terms.length, defs.length]);
+
+  const correctPairs: Record<number, number> = isOldFormat
+    ? Object.fromEntries(terms.map((_, i) => [i, i]))
+    : (() => {
+        const r: Record<number, number> = {};
+        String(question.correct ?? "").split(",").forEach((p) => {
+          const [t, d] = p.split(":").map((s) => s.trim());
+          const ti = terms.findIndex((x) => norm(x) === norm(t));
+          const di = defs.findIndex((x) => norm(x) === norm(d));
+          if (ti !== -1 && di !== -1) r[ti] = di;
+        });
+        return r;
+      })();
+
+  function commit(next: Record<number, number>) {
+    if (Object.keys(next).length === terms.length) {
+      onSelect(Object.entries(next).map(([ti, di]) => `${terms[Number(ti)]}:${defs[Number(di)]}`).join(","));
+    } else {
+      onSelect("");
+    }
   }
 
-  function pickDef(def: string) {
-    if (submitted || !activeTerm) return;
-    const next = { ...pairs, [activeTerm]: def };
+  function pickTerm(ti: number) {
+    if (submitted) return;
+    setActiveTerm((prev) => (prev === ti ? null : ti));
+  }
+
+  function pickDef(di: number) {
+    if (submitted) return;
+    const next = { ...pairs };
+    if (activeTerm === null) {
+      // Tap a paired def to un-pair it
+      const owner = Object.entries(next).find(([, v]) => Number(v) === di);
+      if (owner) { delete next[Number(owner[0])]; setPairs(next); commit(next); }
+      return;
+    }
+    // Remove any existing owner of this def slot
+    const prev = Object.entries(next).find(([, v]) => Number(v) === di);
+    if (prev) delete next[Number(prev[0])];
+    next[activeTerm] = di;
     setPairs(next);
     setActiveTerm(null);
-    if (Object.keys(next).length === terms.length) {
-      onSelect(Object.entries(next).map(([t, d]) => `${t}:${d}`).join(","));
-    }
+    commit(next);
   }
 
-  function isPairCorrect(term: string) {
-    return submitted && norm(pairs[term]) === correctPairs[norm(term)];
-  }
+  const allCorrect = submitted &&
+    Object.entries(pairs).every(([ti, di]) => correctPairs[Number(ti)] === Number(di));
 
   return (
     <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 sm:p-6">
-      <p className="flex gap-2 text-base font-semibold text-ink mb-4">
+      <p className="flex gap-2 text-base font-semibold text-ink mb-5">
         <span className="font-mono text-accent-600">{index + 1}.</span>
         <span>{question.question}</span>
       </p>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Terms</p>
-          {terms.map((term) => {
-            const isActive = activeTerm === term;
-            const matched  = !!pairs[term];
-            const correct  = isPairCorrect(term);
-            const wrong    = submitted && matched && !correct;
+
+      <div ref={containerRef} className="relative">
+        {/* SVG bezier connector lines */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{ overflow: "visible" }}
+        >
+          {pts.tx.length > 0 && Object.entries(pairs).map(([tiStr, di]) => {
+            const ti = Number(tiStr);
+            const x1 = pts.tx[ti], y1 = pts.ty[ti];
+            const x2 = pts.dx[Number(di)], y2 = pts.dy[Number(di)];
+            if (x1 === undefined || x2 === undefined) return null;
+            const mx = (x1 + x2) / 2;
+            const isCorr  = submitted && correctPairs[ti] === Number(di);
+            const isWrong = submitted && !isCorr;
             return (
-              <button
-                key={term}
-                onClick={() => pickTerm(term)}
-                disabled={submitted}
-                className={`text-left rounded-xl border px-3 py-2.5 text-sm font-medium transition-all
-                  ${isActive ? "border-accent-400 bg-accent-50 ring-2 ring-accent-400/30"
-                    : correct ? "border-emerald-400 bg-emerald-50 text-emerald-800"
-                    : wrong   ? "border-rose-400 bg-rose-50 text-rose-800"
-                    : matched ? "border-zinc-300 bg-zinc-50"
-                    : "border-zinc-200 bg-white hover:border-zinc-300"}`}
-              >
-                {term}
-                {matched && !submitted && <span className="ml-2 text-xs text-zinc-400">→ {pairs[term]}</span>}
-              </button>
+              <path
+                key={`${ti}-${di}`}
+                d={`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`}
+                stroke={isCorr ? "#10b981" : isWrong ? "#f43f5e" : "#fbbf24"}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                fill="none"
+              />
             );
           })}
-        </div>
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Definitions</p>
-          {defs.map((def) => {
-            const taken = Object.values(pairs).includes(def);
-            return (
-              <button
-                key={def}
-                onClick={() => pickDef(def)}
-                disabled={submitted || (!activeTerm && !taken)}
-                className={`text-left rounded-xl border px-3 py-2.5 text-sm transition-all
-                  ${activeTerm ? "border-accent-300 bg-accent-50/50 hover:border-accent-400 hover:bg-accent-50"
-                    : taken ? "border-zinc-200 bg-zinc-100 opacity-50"
-                    : "border-zinc-200 bg-white"}`}
-              >
-                {def}
-              </button>
-            );
-          })}
+        </svg>
+
+        <div className="grid grid-cols-2 gap-x-10">
+          {/* Terms column — pink/coral */}
+          <div className="flex flex-col gap-2.5">
+            {terms.map((term, ti) => {
+              const isActive = activeTerm === ti;
+              const isPaired = pairs[ti] !== undefined;
+              const isCorr  = submitted && isPaired && correctPairs[ti] === pairs[ti];
+              const isWrong = submitted && isPaired && !isCorr;
+              return (
+                <button
+                  ref={(el) => { termRefs.current[ti] = el; }}
+                  key={term}
+                  onClick={() => pickTerm(ti)}
+                  disabled={submitted}
+                  className={`flex items-center gap-2.5 rounded-2xl border-2 px-3 py-2.5 text-sm font-medium
+                    text-left transition-all active:scale-[0.98] disabled:cursor-default
+                    ${isCorr  ? "bg-emerald-100 border-emerald-400 text-emerald-800"
+                    : isWrong ? "bg-rose-200 border-rose-400 text-rose-900"
+                    : isActive ? "bg-accent-100 border-accent-500 ring-2 ring-accent-300/50 text-ink"
+                    : "bg-rose-100 border-rose-200 text-rose-900 hover:border-rose-300"}`}
+                >
+                  <span className="shrink-0 w-5 h-5 rounded-lg bg-white/70 grid place-items-center
+                    font-mono font-bold text-[10px] text-rose-500">
+                    {String.fromCharCode(65 + ti)}
+                  </span>
+                  <span className="leading-snug">{term}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Defs column — mint/green */}
+          <div className="flex flex-col gap-2.5">
+            {defs.map((def, di) => {
+              const owner = Object.entries(pairs).find(([, v]) => Number(v) === di);
+              const isPaired = !!owner;
+              const ti = isPaired ? Number(owner![0]) : -1;
+              const isCorr  = submitted && isPaired && correctPairs[ti] === di;
+              const isWrong = submitted && isPaired && !isCorr;
+              const isTarget = activeTerm !== null;
+              return (
+                <button
+                  ref={(el) => { defRefs.current[di] = el; }}
+                  key={def}
+                  onClick={() => pickDef(di)}
+                  disabled={submitted}
+                  className={`flex items-center gap-2.5 rounded-2xl border-2 px-3 py-2.5 text-sm
+                    text-left transition-all active:scale-[0.98] disabled:cursor-default
+                    ${isCorr  ? "bg-emerald-100 border-emerald-400 text-emerald-800"
+                    : isWrong ? "bg-rose-200 border-rose-400 text-rose-900"
+                    : isTarget ? "bg-emerald-100 border-emerald-300 text-emerald-900 hover:border-emerald-400 hover:bg-emerald-100"
+                    : "bg-emerald-100 border-emerald-200 text-emerald-900"}`}
+                >
+                  <span className="shrink-0 w-5 h-5 rounded-lg bg-white/70 grid place-items-center
+                    font-mono font-bold text-[10px] text-emerald-600">
+                    {di + 1}
+                  </span>
+                  <span className="leading-snug">{def}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-      {!submitted && terms.length > 0 && Object.keys(pairs).length < terms.length && (
-        <p className="mt-3 text-xs text-zinc-400">
-          {activeTerm ? `Now pick the definition for "${activeTerm}"` : "Click a term to start matching"}
+
+      {!submitted && (
+        <p className="mt-3 text-xs text-zinc-400 text-center">
+          {activeTerm !== null
+            ? `Now tap a match for "${terms[activeTerm]}"`
+            : Object.keys(pairs).length === terms.length
+            ? "All matched — ready to submit"
+            : "Tap a term (pink), then tap its match (green)"}
         </p>
       )}
+
       <AnimatePresence>
         {selected && submitted && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
-            <p className={`mt-3 text-sm leading-relaxed ${
-              Object.keys(pairs).every(isPairCorrect) ? "text-emerald-700" : "text-zinc-600"
-            }`}>
-              <span className="font-semibold">
-                {Object.keys(pairs).every(isPairCorrect) ? "Correct. " : "Not quite. "}
-              </span>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="overflow-hidden"
+          >
+            <p className={`mt-3 text-sm leading-relaxed ${allCorrect ? "text-emerald-700" : "text-zinc-600"}`}>
+              <span className="font-semibold">{allCorrect ? "Correct. " : "Not quite. "}</span>
               {question.explanation}
             </p>
           </motion.div>

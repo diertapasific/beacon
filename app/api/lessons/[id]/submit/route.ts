@@ -9,6 +9,7 @@ import type { QuizQuestion } from "@/lib/groq";
 const PASS_THRESHOLD = 80; // BRD: >=80% to pass a micro-lesson quiz
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const user = await getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -55,23 +56,47 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const quiz = lesson.quiz as unknown as QuizQuestion[];
   const results = quiz.map((q, i) => {
     const answer = selected[i] ?? "";
+    const correctStr = String(q.correct ?? "");
 
     if (q.type === "matching") {
-      const correctPairs = Object.fromEntries(
-        q.correct.split(",").map((p) => { const [t, d] = p.split(":").map((s) => s.trim()); return [norm(t), norm(d)]; })
-      );
+      const opts: string[] = Array.isArray(q.options) ? q.options.map(String) : [];
+      // Mirror MatchingCard's old/new format detection exactly
+      const termMatch = String(q.question).match(/terms?[:\s]+(.+)/i);
+      const extractedTerms = termMatch
+        ? termMatch[1].split(/[,;]/).map((s: string) => s.trim()).filter(Boolean)
+        : [];
+      const isOldFormat = extractedTerms.length > 0 && extractedTerms.length === opts.length;
+      const terms = isOldFormat ? extractedTerms : opts.slice(0, Math.floor(opts.length / 2));
+      const defs  = isOldFormat ? opts            : opts.slice(Math.floor(opts.length / 2));
+
+      // Build correct pairs the same way MatchingCard does
+      const correctPairs: Record<string, string> = isOldFormat
+        ? Object.fromEntries(terms.map((t: string, i: number) => [norm(t), norm(defs[i] ?? "")]))
+        : Object.fromEntries(
+            correctStr.split(",").filter(Boolean).map((p) => {
+              const [t, d] = p.split(":").map((s) => s.trim());
+              return [norm(t ?? ""), norm(d ?? "")];
+            })
+          );
+
+      // User answer: "term:def,term:def,..."
       const userPairs = Object.fromEntries(
-        answer.split(",").map((p) => { const [t, d] = p.split(":").map((s) => s.trim()); return [norm(t), norm(d)]; })
+        answer.split(",").filter(Boolean).map((p) => {
+          const [t, d] = p.split(":").map((s) => s.trim());
+          return [norm(t ?? ""), norm(d ?? "")];
+        })
       );
-      const isCorrect = Object.keys(correctPairs).every((t) => userPairs[t] === correctPairs[t]);
-      return { correct: isCorrect, expected: q.correct };
+
+      const isCorrect = Object.keys(correctPairs).length > 0 &&
+        Object.keys(correctPairs).every((t) => userPairs[t] === correctPairs[t]);
+      return { correct: isCorrect, expected: correctStr };
     }
 
     if (q.type === "sequence") {
-      const correctSeq = q.correct.split("|").map((s) => norm(s.trim()));
+      const correctSeq = correctStr.split("|").map((s) => norm(s.trim()));
       const userSeq    = answer.split("|").map((s) => norm(s.trim()));
       const isCorrect  = correctSeq.length === userSeq.length && correctSeq.every((s, i) => s === userSeq[i]);
-      return { correct: isCorrect, expected: q.correct };
+      return { correct: isCorrect, expected: correctStr };
     }
 
     const correct = resolveCorrect(q);
@@ -165,4 +190,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     bonusXpActive: completedToday >= 2,
     unlockedAchievements,
   });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error("[submit] unhandled error:", stack ?? msg);
+    return Response.json({ error: msg }, { status: 500 });
+  }
 }
