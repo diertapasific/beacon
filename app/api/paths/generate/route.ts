@@ -1,4 +1,5 @@
-import { groq, buildPathPrompt, parsePathResponse, PATH_MODEL } from "@/lib/groq";
+import { groq, buildWeekPrompt, parseWeekResponse, PATH_MODEL } from "@/lib/groq";
+import type { GeneratedPath } from "@/lib/groq";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
 import { Prisma, LessonType } from "@prisma/client";
@@ -30,18 +31,30 @@ export async function POST(req: Request) {
   }
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: PATH_MODEL,
-      messages: [
-        { role: "user", content: buildPathPrompt(skill, level, Number(hoursPerWeek), goal) },
-      ],
-      max_tokens: 8000,
-      temperature: 0.7,
-      response_format: { type: "json_object" },
-    });
+    // Generate all 4 weeks in parallel — each call gets its own full token budget.
+    const weekCompletions = await Promise.all(
+      [1, 2, 3, 4].map((week) =>
+        groq.chat.completions.create({
+          model: PATH_MODEL,
+          messages: [
+            { role: "user", content: buildWeekPrompt(skill, level, Number(hoursPerWeek), goal, week) },
+          ],
+          max_tokens: 8000,
+          temperature: 0.7,
+          response_format: { type: "json_object" },
+        })
+      )
+    );
 
-    const raw = completion.choices[0]?.message?.content ?? "";
-    const parsed = parsePathResponse(raw);
+    const weeks = weekCompletions.map((c, i) =>
+      parseWeekResponse(c.choices[0]?.message?.content ?? "", i + 1)
+    );
+
+    const parsed: GeneratedPath = {
+      skill: String(skill),
+      totalWeeks: 4,
+      weeks,
+    };
 
     const path = await prisma.learningPath.create({
       data: {

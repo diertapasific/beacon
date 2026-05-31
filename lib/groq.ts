@@ -4,71 +4,98 @@ export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export const PATH_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
-export function buildPathPrompt(
+const WEEK_THEMES = [
+  "Foundations — core mental models, key terminology, why this skill matters",
+  "Core Techniques — essential tools, libraries, and hands-on workflows",
+  "Depth — advanced concepts, tradeoffs, edge cases, comparing approaches",
+  "Mastery — expert patterns, debugging, real-world application, career context",
+] as const;
+
+export function buildWeekPrompt(
   skill: string,
   level: string,
   hoursPerWeek: number,
-  goal?: string
+  goal: string | undefined,
+  weekNumber: number
 ): string {
+  const theme = WEEK_THEMES[weekNumber - 1];
   return `
-You are a world-class instructional designer. Generate a 4-week micro-learning curriculum.
+You are a world-class instructional designer. Generate Week ${weekNumber} of 4 for a micro-learning curriculum.
 
 Skill: ${skill}
-Current level: ${level}
+Level: ${level}
 Hours per week: ${hoursPerWeek}
-Goal: ${goal || "General learning"}
+Goal: ${goal || "General mastery"}
+Week ${weekNumber} focus: ${theme}
 
-RULES:
-- Each lesson covers EXACTLY ONE concept
-- Each lesson takes 60-90 seconds to read
-- Core idea must be 2-3 sentences MAX
-- Generate 5-7 lessons per week (20-28 total)
-- Quiz: 2-3 questions per lesson, pass threshold = 80%
-- Vary lesson types across the curriculum
+LESSON RULES (non-negotiable):
+- Generate EXACTLY 6 lessons. No fewer.
+- Each lesson covers ONE focused, specific concept, tool, or comparison — never a vague overview
+- Headlines must be specific ("How Gradient Descent Minimizes Loss" not "Training Models")
+- coreIdea: 3-5 sentences covering WHAT it is, HOW it works mechanically, and WHY it matters
+- example: Concrete working code snippet OR a precise analogy with named specifics — no placeholders
+- realWorldUse: Name a specific company, product, or research result that uses this
+- estimatedSec: 120 to 180
 
-Return ONLY a valid JSON object (no markdown, no explanation) with this EXACT structure:
+WEEK ${weekNumber} MUST INCLUDE:
+- At least 2 lessons about specific tools, libraries, or APIs
+- At least 1 lesson comparing two approaches or algorithms directly
+- At least 1 myth_vs_reality or did_you_know lesson
+- No more than 2 consecutive lessons of the same type
+
+QUIZ RULES:
+- 3-4 questions per lesson
+- Mix types aggressively — never 3 multiple_choice in a row
+- Test understanding ("why does X happen") not just recall ("what is X")
+- All multiple_choice options must be plausible — no obviously wrong distractors
+
+Return ONLY valid JSON, no markdown:
 {
-  "skill": "${skill}",
-  "totalWeeks": 4,
-  "weeks": [
+  "week": ${weekNumber},
+  "theme": "${theme}",
+  "lessons": [
     {
-      "week": 1,
-      "theme": "string — theme for this week",
-      "lessons": [
+      "order": 1,
+      "type": "concept_card",
+      "headline": "Specific title",
+      "coreIdea": "3-5 sentences with real depth",
+      "example": "Concrete code or named analogy",
+      "realWorldUse": "Named company/product/research",
+      "estimatedSec": 150,
+      "quiz": [
         {
-          "order": 1,
-          "type": "concept_card",
-          "headline": "One-line concept title",
-          "coreIdea": "2-3 sentences max. Simple language.",
-          "example": "One code snippet, analogy, or scenario",
-          "realWorldUse": "One fun fact or industry application",
-          "estimatedSec": 90,
-          "quiz": [
-            {
-              "type": "multiple_choice",
-              "question": "Question text",
-              "options": ["A", "B", "C", "D"],
-              "correct": "A",
-              "explanation": "Why this is correct"
-            }
-          ]
+          "type": "multiple_choice",
+          "question": "Question testing understanding",
+          "options": ["Option A", "Option B", "Option C", "Option D"],
+          "correct": "Option A",
+          "explanation": "Why correct, why others are wrong"
         }
       ]
     }
   ]
 }
 
-Lesson "type" must be one of: concept_card, analogy, code_snippet, myth_vs_reality, did_you_know, flashcard (vary them).
-Quiz "type" must be one of: multiple_choice, true_false, fill_blank, matching, sequence, spot_the_bug (vary them).
+Lesson type: concept_card | analogy | code_snippet | myth_vs_reality | did_you_know | flashcard
+Quiz type: multiple_choice | true_false | fill_blank | matching | sequence | spot_the_bug
 
-Format rules per type (STRICT — follow exactly):
-- multiple_choice: "options" = 4 answer strings. "correct" = full text of one option, copied exactly.
-- true_false: "options" = ["True","False"]. "correct" = "True" or "False".
-- fill_blank: "question" has a blank shown as ___. "options" = []. "correct" = the word/phrase that fills the blank.
-- matching: "options" = [term1, term2, term3, def1, def2, def3] — first half terms, second half definitions, equal count. "correct" = "term1:def1,term2:def2,term3:def3" using colon pairs separated by commas.
-- sequence: "options" = steps in SCRAMBLED order. "correct" = steps joined by "|" in the CORRECT order, using the exact same strings as in options.
-- spot_the_bug: "question" contains a short code snippet with a bug. "options" = 4 strings describing where/what the bug is. "correct" = full text of the correct option.
+Quiz format (STRICT):
+- multiple_choice: options = 4 strings. correct = full text of one option, copied exactly.
+- true_false: options = ["True","False"]. correct = "True" or "False".
+- fill_blank: question contains ___. options = []. correct = exact word/phrase.
+- matching: options = [term1,term2,term3,def1,def2,def3] — 3 terms then 3 defs. correct = "term1:def1,term2:def2,term3:def3".
+- sequence: options = 4-5 SHORT individual steps in SCRAMBLED order (each is one brief action, NOT a full sentence with commas). correct = those exact strings joined by | in correct order.
+- spot_the_bug: question = short code with one bug. options = 4 bug descriptions. correct = full text of correct option.
 `;
+}
+
+/** Legacy single-call prompt — kept for reference, use buildWeekPrompt instead. */
+export function buildPathPrompt(
+  skill: string,
+  level: string,
+  hoursPerWeek: number,
+  goal?: string
+): string {
+  return [1, 2, 3, 4].map((w) => buildWeekPrompt(skill, level, hoursPerWeek, goal, w)).join("\n\n---\n\n");
 }
 
 /** Shape of a single quiz question stored in Lesson.quiz */
@@ -103,19 +130,26 @@ export interface GeneratedPath {
   weeks: GeneratedWeek[];
 }
 
-/**
- * Strips accidental markdown fences and parses the model output into a
- * structurally-validated GeneratedPath. Throws if the shape is invalid.
- */
+function stripFences(raw: string): string {
+  return raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+}
+
+/** Parse a single-week response from buildWeekPrompt. */
+export function parseWeekResponse(raw: string, weekNumber: number): GeneratedWeek {
+  const parsed = JSON.parse(stripFences(raw)) as GeneratedWeek;
+  if (!Array.isArray(parsed.lessons) || parsed.lessons.length < 1) {
+    throw new Error(`Week ${weekNumber} returned no lessons`);
+  }
+  return {
+    week: weekNumber,
+    theme: parsed.theme ?? WEEK_THEMES[weekNumber - 1],
+    lessons: parsed.lessons,
+  };
+}
+
+/** Legacy: parse a single full-path response. */
 export function parsePathResponse(raw: string): GeneratedPath {
-  const cleaned = raw
-    .trim()
-    .replace(/^```(?:json)?/i, "")
-    .replace(/```$/i, "")
-    .trim();
-
-  const parsed = JSON.parse(cleaned) as GeneratedPath;
-
+  const parsed = JSON.parse(stripFences(raw)) as GeneratedPath;
   if (!parsed.weeks || !Array.isArray(parsed.weeks) || parsed.weeks.length === 0) {
     throw new Error("Generated path has no weeks");
   }
