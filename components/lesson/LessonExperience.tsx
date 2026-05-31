@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
-  ArrowRight, ArrowLeft, Check, X, Lightbulb, Sparkle, House, ArrowsClockwise, Trophy,
+  ArrowRight, ArrowLeft, Check, X, Lightbulb, Sparkle, House, ArrowsClockwise,
 } from "@phosphor-icons/react";
 import { lessonTypeLabel } from "../ui/LessonTypeBadge";
 import { AchievementModal, type UnlockedAchievement } from "../ui/AchievementModal";
+import { Mascot } from "../ui/Mascot";
 import { toTitleCase } from "@/lib/format";
 
 interface QuizQuestion {
@@ -855,11 +856,11 @@ function PathCompleteView({
     >
       <motion.div
         initial={{ scale: 0, rotate: -15 }}
-        animate={{ scale: 1, rotate: -4 }}
+        animate={{ scale: 1, rotate: 0 }}
         transition={{ type: "spring", stiffness: 220, damping: 12, delay: 0.08 }}
-        className="mx-auto w-20 h-20 rounded-2xl bg-clay text-cream border-2 border-line shadow-hard-lg grid place-items-center mb-6"
+        className="mx-auto mb-6"
       >
-        <Trophy size={40} weight="fill" />
+        <Mascot state="celebrate" size={140} />
       </motion.div>
 
       <motion.p
@@ -933,11 +934,12 @@ function ResultView({
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 14, delay: 0.05 }}
-        className={`mx-auto grid place-items-center w-20 h-20 rounded-2xl border-2 border-line shadow-hard ${
-          result.passed ? "bg-teal text-cream" : "bg-berry text-cream"
-        }`}
+        className="mx-auto"
       >
-        {result.passed ? <Check size={40} weight="bold" /> : <ArrowsClockwise size={36} weight="bold" />}
+        <Mascot
+          state={result.passed ? (result.leveledUp ? "level_up" : "correct") : "wrong"}
+          size={130}
+        />
       </motion.div>
 
       <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-ink">

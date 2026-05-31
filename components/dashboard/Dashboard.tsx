@@ -4,10 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight, Check, Lock, Trophy, Confetti, Clock, CaretLeft, CaretDown,
+  ArrowRight, Check, Lock, Clock, CaretLeft, CaretDown,
   BookOpen, Lightbulb, Code, Scales, Sparkle, Repeat, Flame,
 } from "@phosphor-icons/react";
 import type { DashboardData, LessonSummary } from "@/lib/queries";
+import { Mascot } from "../ui/Mascot";
 import { toTitleCase } from "@/lib/format";
 import { lessonTypeLabel } from "../ui/LessonTypeBadge";
 import { Icon } from "../ui/Icon";
@@ -167,13 +168,15 @@ function AllDoneBlock({ skill, completed }: { skill: string; completed: number }
   return (
     <div className="relative rounded-2xl border-2 border-line bg-teal-tint p-7 sm:p-8 overflow-hidden shadow-hard">
       <div className="h-2.5 bg-teal border-b-2 border-line absolute top-0 inset-x-0" />
-      <span className="grid place-items-center w-12 h-12 rounded-xl bg-teal text-cream border-2 border-line mb-4 mt-2">
-        <Confetti size={26} weight="fill" />
-      </span>
-      <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">Path complete</h3>
-      <p className="mt-2 text-sm text-ink-soft max-w-[42ch] leading-relaxed">
-        You finished all {completed} lessons of {toTitleCase(skill)}. The whole curriculum, cleared.
-      </p>
+      <div className="flex items-center gap-5">
+        <Mascot state="celebrate" size={80} className="shrink-0" />
+        <div>
+          <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">Path complete</h3>
+          <p className="mt-2 text-sm text-ink-soft max-w-[42ch] leading-relaxed">
+            You finished all {completed} lessons of {toTitleCase(skill)}. The whole curriculum, cleared.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -302,10 +305,8 @@ function AchievementShelf({ earned }: { earned: DashboardData["achievements"] })
 
   if (earned.length === 0) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border-2 border-dashed border-ink/40 bg-cream px-5 py-4">
-        <span className="grid place-items-center w-10 h-10 rounded-lg bg-paper border-2 border-line text-ink-faint shrink-0">
-          <Trophy size={18} />
-        </span>
+      <div className="flex items-center gap-4 rounded-xl border-2 border-dashed border-ink/40 bg-cream px-5 py-3">
+        <Mascot state="sleeping" size={64} className="shrink-0" />
         <p className="text-sm text-ink-soft">No badges yet. Clear your first lesson to light one up.</p>
       </div>
     );
