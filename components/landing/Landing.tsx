@@ -11,6 +11,7 @@ import { Button } from "../ui/Button";
 import { MagneticButton } from "../ui/MagneticButton";
 import { Logo } from "../ui/Logo";
 import { Blob, Stamp } from "../ui/Riso";
+import { Mascot } from "../ui/Mascot";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -119,8 +120,15 @@ function HeroPreview() {
       initial={{ opacity: 0, y: 30, rotate: 2 }}
       animate={{ opacity: 1, y: 0, rotate: 1.5 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-      className="relative"
+      className="relative pt-14"
     >
+      <motion.div
+        animate={{ y: [0, -10, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -top-2 left-1/2 -translate-x-1/2 z-10"
+      >
+        <Mascot state="idle" size={112} />
+      </motion.div>
       <div className="rounded-2xl border-2 border-line bg-cream p-5 sm:p-6 shadow-hard-lg">
         <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint">
           <span>Curriculum</span>
@@ -474,9 +482,9 @@ function FooterCTA({ onStart }: { onStart: () => void }) {
         <Blob spot="teal" shape={3} motion="float" className="w-52 h-52 -bottom-16 -right-12 opacity-80" />
 
         <div className="relative z-10">
-          <span className="grid place-items-center w-16 h-16 rounded-xl bg-clay text-cream border-2 border-line mx-auto mb-6 shadow-hard-sm">
-            <Lighthouse size={32} weight="fill" />
-          </span>
+          <div className="flex justify-center mb-4">
+            <Mascot state="idle" size={96} />
+          </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none max-w-[20ch] mx-auto">
             Insert coin. Start in 30 seconds.
           </h2>

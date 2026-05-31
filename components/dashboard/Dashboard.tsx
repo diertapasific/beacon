@@ -51,12 +51,21 @@ export function Dashboard({ data }: { data: DashboardData }) {
           <CaretLeft size={11} weight="bold" />
           All paths
         </Link>
-        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-clay-deep">
-          {greeting()}{firstName ? `, ${firstName}` : ""}
-        </p>
-        <h1 className="mt-2 text-4xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none">
-          {toTitleCase(data.path.skill)}
-        </h1>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-clay-deep">
+              {greeting()}{firstName ? `, ${firstName}` : ""}
+            </p>
+            <h1 className="mt-2 text-4xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none">
+              {toTitleCase(data.path.skill)}
+            </h1>
+          </div>
+          <Mascot
+            state={data.streak.current > 0 ? "streak" : "idle"}
+            size={88}
+            className="shrink-0 hidden sm:block"
+          />
+        </div>
       </motion.div>
 
       {/* Stat strip — bordered cells, riso tints */}

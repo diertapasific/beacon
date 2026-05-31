@@ -37,17 +37,16 @@ export function Mascot({
   const { file, loop } = ANIM[state];
 
   useEffect(() => {
-    setData(null);
     fetch(file)
       .then((r) => r.json())
       .then(setData);
   }, [file]);
 
-  // Stable placeholder so layout doesn't jump while fetching
   if (!data) return <div style={{ width: size, height: size }} className={className} />;
 
   return (
     <Lottie
+      key={state}
       animationData={data}
       loop={loop}
       autoplay
