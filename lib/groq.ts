@@ -90,7 +90,7 @@ Quiz format (STRICT):
 - multiple_choice: options = 4 strings. correct = full text of one option, copied exactly.
 - true_false: options = ["True","False"]. correct = "True" or "False".
 - fill_blank: question contains ___. options = []. correct = exact word/phrase.
-- matching: options = [term1,term2,term3,def1,def2,def3] — 3 terms then 3 defs. correct = "term1:def1,term2:def2,term3:def3".
+- matching: options = [term1,term2,term3,def1,def2,def3] — first 3 are SHORT terms (1-4 words each), last 3 are DESCRIPTIVE phrases (6+ words each explaining what the term means or does). correct = "term1:def1,term2:def2,term3:def3". The question must be a plain instruction like "Match each term with its correct description" — do NOT list the terms inside the question text, and do NOT use a bare noun or single word as a definition.
 - sequence: options = 4-5 SHORT individual steps in SCRAMBLED order (each is one brief action, NOT a full sentence with commas). correct = those exact strings joined by | in correct order.
 - spot_the_bug: question = short code with one bug. options = 4 bug descriptions. correct = full text of correct option.
 `;
