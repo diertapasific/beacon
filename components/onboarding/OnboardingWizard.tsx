@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lighthouse, ArrowRight, ArrowLeft, Check } from "@phosphor-icons/react";
+import { ArrowRight, ArrowLeft, Check } from "@phosphor-icons/react";
 import { Button } from "../ui/Button";
 import { Logo } from "../ui/Logo";
-import { Blob, Stamp } from "../ui/Riso";
+import { Blob } from "../ui/Riso";
+import { Mascot } from "../ui/Mascot";
 
 const SKILL_SUGGESTIONS = [
   "Machine Learning",
@@ -295,6 +296,7 @@ function SelectCard({
 
 function GeneratingScreen({ skill }: { skill: string }) {
   const [msgIndex, setMsgIndex] = useState(0);
+
   useEffect(() => {
     const id = setInterval(() => {
       setMsgIndex((i) => (i + 1) % GENERATING_MESSAGES.length);
@@ -308,36 +310,55 @@ function GeneratingScreen({ skill }: { skill: string }) {
       <Blob spot="teal" shape={2} motion="float" className="w-72 h-72 -bottom-16 -right-12 opacity-65" />
       <Blob spot="sun" shape={1} className="w-44 h-44 top-[18%] right-[14%] opacity-70" />
 
-      <div className="relative z-10">
-        <motion.div
-          animate={{ rotate: [0, -8, 8, 0], y: [0, -10, 0] }}
-          transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-          className="mx-auto grid place-items-center w-24 h-24 rounded-2xl bg-clay text-cream border-2 border-line shadow-hard-lg"
-        >
-          <Lighthouse size={44} weight="fill" />
-        </motion.div>
-        <h1 className="mt-8 text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
-          Building your path for{" "}
-          <span className="text-clay-deep">{skill}</span>
+      <div className="relative z-10 flex flex-col items-center">
+        {/* Mascot floating with ground shadow */}
+        <div className="relative flex flex-col items-center">
+          <motion.div
+            animate={{ y: [0, -14, 0] }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Mascot state="thinking" size={200} />
+          </motion.div>
+          <motion.div
+            animate={{ scaleX: [1, 0.78, 1], opacity: [0.25, 0.1, 0.25] }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+            className="w-20 h-3 rounded-full bg-clay/40 blur-sm -mt-1"
+          />
+        </div>
+
+        {/* Headline */}
+        <h1 className="mt-8 text-3xl sm:text-4xl font-extrabold tracking-tight text-ink leading-tight">
+          Building your path
+          <br />
+          <span className="text-clay-deep">for {skill}</span>
         </h1>
-        <div className="mt-4 h-6">
+
+        {/* Cycling status */}
+        <div className="mt-3 h-6">
           <AnimatePresence mode="wait">
             <motion.p
               key={msgIndex}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.4 }}
-              className="font-medium text-ink-soft"
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.35 }}
+              className="font-mono text-sm text-ink-soft"
             >
               {GENERATING_MESSAGES[msgIndex]}
             </motion.p>
           </AnimatePresence>
         </div>
-        <div className="mt-8 flex justify-center">
-          <Stamp spin={-6} tone="ink" className="w-24 h-24 bg-cream shadow-hard-sm">
-            ~10–20<br />seconds
-          </Stamp>
+
+        {/* Bouncing dots */}
+        <div className="mt-8 flex gap-2.5 justify-center">
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              animate={{ y: [0, -9, 0] }}
+              transition={{ duration: 0.75, repeat: Infinity, delay: i * 0.14, ease: "easeInOut" }}
+              className="w-2.5 h-2.5 rounded-full bg-clay"
+            />
+          ))}
         </div>
       </div>
     </div>

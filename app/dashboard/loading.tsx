@@ -1,3 +1,5 @@
+import { Mascot } from "@/components/ui/Mascot";
+
 function Bar({ className = "" }: { className?: string }) {
   return <div className={`beacon-shimmer rounded-lg ${className}`} />;
 }
@@ -10,6 +12,14 @@ export default function DashboardLoading() {
 
       <div className="md:pl-[68px]">
         <div className="max-w-4xl mx-auto px-5 sm:px-8 pt-8 sm:pt-12 pb-20">
+          {/* Mascot loading header */}
+          <div className="flex flex-col items-center py-10 mb-2">
+            <Mascot state="sleeping" size={120} />
+            <p className="mt-3 font-mono text-xs font-bold uppercase tracking-[0.2em] text-ink-faint">
+              Loading your dashboard…
+            </p>
+          </div>
+
           <Bar className="h-3 w-28 mb-3" />
           <Bar className="h-10 w-64 mb-8" />
 
