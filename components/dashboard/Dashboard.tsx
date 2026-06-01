@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +31,7 @@ const item = {
 };
 
 export function Dashboard({ data }: { data: DashboardData }) {
+  const hello = useGreeting();
   const firstName = data.name?.split(" ")[0];
   const phases = groupByPhase(data.lessons);
   const nextLesson = data.lessons.find((l) => l.id === data.nextLessonId);
@@ -55,7 +56,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-clay-deep">
-              {greeting()}{firstName ? `, ${firstName}` : ""}
+              {hello}{firstName ? `, ${firstName}` : ""}
             </p>
             <h1 className="mt-2 text-4xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none">
               {toTitleCase(data.path.skill)}
@@ -430,9 +431,14 @@ function groupByPhase(lessons: LessonSummary[]): PhaseGroup[] {
   return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([phaseNumber, lessons]) => ({ phaseNumber, lessons }));
 }
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+// Time-of-day greeting resolved only after mount. The server (UTC) and the
+// browser (local tz) would otherwise compute different hours and trip a
+// hydration mismatch, so we render a stable value first, then swap on the client.
+function useGreeting(): string {
+  const [hello, setHello] = useState("Welcome");
+  useEffect(() => {
+    const h = new Date().getHours();
+    setHello(h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening");
+  }, []);
+  return hello;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,11 +20,14 @@ const LEVEL_LABELS: Record<string, string> = {
   advanced: "Advanced",
 };
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
+// Resolved post-mount to avoid a UTC-vs-local hydration mismatch (React #418).
+function useGreeting(): string {
+  const [hello, setHello] = useState("Welcome");
+  useEffect(() => {
+    const h = new Date().getHours();
+    setHello(h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening");
+  }, []);
+  return hello;
 }
 
 function PathRow({ path, onDeleted }: { path: PathSummary; onDeleted: (id: string) => void }) {
@@ -123,6 +126,7 @@ function PathRow({ path, onDeleted }: { path: PathSummary; onDeleted: (id: strin
 
 export function PathList({ paths: initialPaths, userName }: { paths: PathSummary[]; userName: string | null }) {
   const router = useRouter();
+  const hello = useGreeting();
   const firstName = userName?.split(" ")[0];
   const [paths, setPaths] = useState(initialPaths);
 
@@ -141,7 +145,7 @@ export function PathList({ paths: initialPaths, userName }: { paths: PathSummary
     >
       <motion.div variants={item} className="mb-8">
         <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-clay-deep">
-          {greeting()}{firstName ? `, ${firstName}` : ""}
+          {hello}{firstName ? `, ${firstName}` : ""}
         </p>
         <div className="flex items-center justify-between gap-4 mt-2">
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none">Your paths</h1>
