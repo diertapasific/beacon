@@ -18,6 +18,7 @@ interface QuizQuestion {
   options: string[];
   correct: string;
   explanation: string;
+  hint?: string;
 }
 
 export interface LessonContent {
@@ -333,15 +334,6 @@ function editDistance(a: string, b: string): number {
   return dp[m][n];
 }
 
-function fuzzyMatch(a: string | null | undefined, b: string): boolean {
-  const na = norm(a), nb = norm(b);
-  if (na === nb) return true;
-  if (na.length < 2 || nb.length < 2) return false;
-  const ratio = Math.min(na.length, nb.length) / Math.max(na.length, nb.length);
-  if (ratio >= 0.6 && (na.includes(nb) || nb.includes(na))) return true;
-  return editDistance(na, nb) <= (Math.max(na.length, nb.length) <= 6 ? 1 : 2);
-}
-
 function resolveCorrect(q: QuizQuestion, opts: string[]): string {
   const direct = opts.find((o) => norm(o) === norm(q.correct));
   if (direct) return direct;
@@ -368,7 +360,7 @@ function QuizCard({
   submitted: boolean;
   onSelect: (option: string) => void;
 }) {
-  const [draft, setDraft] = useState(selected ?? "");
+  const [hintRevealed, setHintRevealed] = useState(false);
 
   if (question.type === "matching") {
     return <MatchingCard question={question} index={index} selected={selected} submitted={submitted} onSelect={onSelect} />;
@@ -386,37 +378,45 @@ function QuizCard({
       ? ["True", "False"]
       : [];
 
-  const isOpenEnded = options.length === 0;
   const correct = resolveCorrect(question, options);
-  const gotItRight = isOpenEnded ? fuzzyMatch(selected, correct) : norm(selected) === norm(correct);
+  const gotItRight = norm(selected) === norm(correct);
 
   return (
     <div className="rounded-xl border-2 border-line bg-cream p-5 sm:p-6 shadow-hard">
-      <p className="flex gap-2 text-base font-bold text-ink">
-        <span className="font-mono text-clay-deep">{index + 1}.</span>
-        <span>{question.question}</span>
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="flex gap-2 text-base font-bold text-ink">
+          <span className="font-mono text-clay-deep">{index + 1}.</span>
+          <span>{question.question}</span>
+        </p>
+        {question.hint && !submitted && (
+          <button
+            onClick={() => setHintRevealed(true)}
+            className={`shrink-0 grid place-items-center w-9 h-9 rounded-full border-2 border-line transition-all duration-200
+              ${hintRevealed
+                ? "opacity-0 pointer-events-none"
+                : "bg-paper text-ink-faint hover:bg-sun-tint hover:text-clay-deep hover:border-clay hover:shadow-[0_0_14px_rgba(255,150,0,0.22)] active:scale-[0.93]"}`}
+            aria-label="Show hint"
+          >
+            <Lightbulb size={17} weight={hintRevealed ? "fill" : "regular"} />
+          </button>
+        )}
+      </div>
+      <AnimatePresence>
+        {hintRevealed && question.hint && !submitted && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="overflow-hidden"
+          >
+            <p className="mt-3 flex items-start gap-2 rounded-lg border-2 border-line bg-sun-tint px-3 py-2.5 text-sm text-ink-soft leading-relaxed">
+              <Lightbulb size={14} weight="fill" className="shrink-0 mt-0.5 text-clay-deep" />
+              {question.hint}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="mt-4 grid gap-2.5">
-        {isOpenEnded ? (
-          submitted ? (
-            <div className={`rounded-lg border-2 border-line px-4 py-3 text-sm font-medium flex items-center justify-between gap-3 ${
-              gotItRight ? "bg-teal-tint text-teal-deep" : "bg-berry-tint text-berry"
-            }`}>
-              <span>{selected}</span>
-              <Mark ok={gotItRight} />
-            </div>
-          ) : (
-            <input
-              autoFocus={index === 0}
-              value={draft}
-              onChange={(e) => { setDraft(e.target.value); onSelect(e.target.value); }}
-              placeholder="Type your answer…"
-              className="w-full h-12 rounded-lg border-2 border-line bg-paper px-4 text-sm text-ink
-                placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-clay"
-            />
-          )
-        ) : (
-          options.map((option) => {
+        {options.map((option) => {
             const isCorrect = norm(option) === norm(correct);
             const isChosen = norm(option) === norm(selected);
             let style = "border-ink/25 bg-paper hover:border-line text-ink-soft";
@@ -448,8 +448,7 @@ function QuizCard({
                 {icon}
               </motion.button>
             );
-          })
-        )}
+          })}
       </div>
       <AnimatePresence>
         {answered && submitted && (
@@ -472,6 +471,7 @@ function MatchingCard({
   question: QuizQuestion; index: number; selected: string | null;
   submitted: boolean; onSelect: (answer: string) => void;
 }) {
+  const [hintRevealed, setHintRevealed] = useState(false);
   const opts = Array.isArray(question.options) ? question.options.map(String) : [];
 
   const termMatch = String(question.question).match(/terms?[:\s]+(.+)/i);
@@ -569,10 +569,38 @@ function MatchingCard({
 
   return (
     <div className="rounded-xl border-2 border-line bg-cream p-5 sm:p-6 shadow-hard">
-      <p className="flex gap-2 text-base font-bold text-ink mb-5">
-        <span className="font-mono text-clay-deep">{index + 1}.</span>
-        <span>{question.question}</span>
-      </p>
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <p className="flex gap-2 text-base font-bold text-ink">
+          <span className="font-mono text-clay-deep">{index + 1}.</span>
+          <span>{question.question}</span>
+        </p>
+        {question.hint && !submitted && (
+          <button
+            onClick={() => setHintRevealed(true)}
+            className={`shrink-0 grid place-items-center w-9 h-9 rounded-full border-2 border-line transition-all duration-200
+              ${hintRevealed
+                ? "opacity-0 pointer-events-none"
+                : "bg-paper text-ink-faint hover:bg-sun-tint hover:text-clay-deep hover:border-clay hover:shadow-[0_0_14px_rgba(255,150,0,0.22)] active:scale-[0.93]"}`}
+            aria-label="Show hint"
+          >
+            <Lightbulb size={17} weight={hintRevealed ? "fill" : "regular"} />
+          </button>
+        )}
+      </div>
+      <AnimatePresence>
+        {hintRevealed && question.hint && !submitted && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="overflow-hidden mb-4"
+          >
+            <p className="flex items-start gap-2 rounded-lg border-2 border-line bg-sun-tint px-3 py-2.5 text-sm text-ink-soft leading-relaxed">
+              <Lightbulb size={14} weight="fill" className="shrink-0 mt-0.5 text-clay-deep" />
+              {question.hint}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div ref={containerRef} className="relative">
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: "visible" }}>
@@ -691,6 +719,7 @@ function SequenceCard({
   question: QuizQuestion; index: number; selected: string | null;
   submitted: boolean; onSelect: (answer: string) => void;
 }) {
+  const [hintRevealed, setHintRevealed] = useState(false);
   const opts = Array.isArray(question.options) ? question.options.map(String) : [];
   const correctStr = String(question.correct ?? "");
 
@@ -722,10 +751,38 @@ function SequenceCard({
   if (isSingleChoice) {
     return (
       <div className="rounded-xl border-2 border-line bg-cream p-5 sm:p-6 shadow-hard">
-        <p className="flex gap-2 text-base font-bold text-ink mb-4">
-          <span className="font-mono text-clay-deep">{index + 1}.</span>
-          <span>{question.question}</span>
-        </p>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <p className="flex gap-2 text-base font-bold text-ink">
+            <span className="font-mono text-clay-deep">{index + 1}.</span>
+            <span>{question.question}</span>
+          </p>
+          {question.hint && !submitted && (
+            <button
+              onClick={() => setHintRevealed(true)}
+              className={`shrink-0 grid place-items-center w-9 h-9 rounded-full border-2 border-line transition-all duration-200
+                ${hintRevealed
+                  ? "opacity-0 pointer-events-none"
+                  : "bg-paper text-ink-faint hover:bg-sun-tint hover:text-clay-deep hover:border-clay hover:shadow-[0_0_14px_rgba(255,150,0,0.22)] active:scale-[0.93]"}`}
+              aria-label="Show hint"
+            >
+              <Lightbulb size={17} weight={hintRevealed ? "fill" : "regular"} />
+            </button>
+          )}
+        </div>
+        <AnimatePresence>
+          {hintRevealed && question.hint && !submitted && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="overflow-hidden mb-3"
+            >
+              <p className="flex items-start gap-2 rounded-lg border-2 border-line bg-sun-tint px-3 py-2.5 text-sm text-ink-soft leading-relaxed">
+                <Lightbulb size={14} weight="fill" className="shrink-0 mt-0.5 text-clay-deep" />
+                {question.hint}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="grid gap-2.5">
           {opts.map((option) => {
             const isCorrectOpt = norm(option) === norm(correctOption);
@@ -777,10 +834,38 @@ function SequenceCard({
 
   return (
     <div className="rounded-xl border-2 border-line bg-cream p-5 sm:p-6 shadow-hard">
-      <p className="flex gap-2 text-base font-bold text-ink mb-4">
-        <span className="font-mono text-clay-deep">{index + 1}.</span>
-        <span>{question.question}</span>
-      </p>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <p className="flex gap-2 text-base font-bold text-ink">
+          <span className="font-mono text-clay-deep">{index + 1}.</span>
+          <span>{question.question}</span>
+        </p>
+        {question.hint && !submitted && (
+          <button
+            onClick={() => setHintRevealed(true)}
+            className={`shrink-0 grid place-items-center w-9 h-9 rounded-full border-2 border-line transition-all duration-200
+              ${hintRevealed
+                ? "opacity-0 pointer-events-none"
+                : "bg-paper text-ink-faint hover:bg-sun-tint hover:text-clay-deep hover:border-clay hover:shadow-[0_0_14px_rgba(255,150,0,0.22)] active:scale-[0.93]"}`}
+            aria-label="Show hint"
+          >
+            <Lightbulb size={17} weight={hintRevealed ? "fill" : "regular"} />
+          </button>
+        )}
+      </div>
+      <AnimatePresence>
+        {hintRevealed && question.hint && !submitted && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="overflow-hidden mb-3"
+          >
+            <p className="flex items-start gap-2 rounded-lg border-2 border-line bg-sun-tint px-3 py-2.5 text-sm text-ink-soft leading-relaxed">
+              <Lightbulb size={14} weight="fill" className="shrink-0 mt-0.5 text-clay-deep" />
+              {question.hint}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {order.length > 0 && (
         <div className="flex flex-col gap-2 mb-3">

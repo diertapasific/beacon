@@ -33,15 +33,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return dp[m][n];
   }
 
-  function fuzzyMatch(a: string | null | undefined, b: string): boolean {
-    const na = norm(a), nb = norm(b);
-    if (na === nb) return true;
-    if (na.length < 2 || nb.length < 2) return false;
-    const ratio = Math.min(na.length, nb.length) / Math.max(na.length, nb.length);
-    if (ratio >= 0.6 && (na.includes(nb) || nb.includes(na))) return true;
-    return editDistance(na, nb) <= (Math.max(na.length, nb.length) <= 6 ? 1 : 2);
-  }
-
   const resolveCorrect = (q: QuizQuestion): string => {
     const opts: string[] = Array.isArray(q.options) ? q.options.map(String) : [];
     const direct = opts.find((o) => norm(o) === norm(q.correct));
@@ -113,11 +104,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     const correct = resolveCorrect(q);
-    const opts: string[] = Array.isArray(q.options) ? q.options : [];
-    const isOpenEnded = opts.length === 0 && q.type !== "true_false";
-    const isCorrect = isOpenEnded
-      ? fuzzyMatch(answer, correct)
-      : norm(answer) === norm(correct);
+    const isCorrect = norm(answer) === norm(correct);
     return { correct: isCorrect, expected: correct };
   });
   const correctCount = results.filter((r) => r.correct).length;

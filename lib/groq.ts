@@ -89,6 +89,7 @@ QUIZ RULES:
 - Mix types aggressively — never 3 multiple_choice in a row
 - Test understanding ("why does X happen") not just recall ("what is X")
 - All multiple_choice options must be plausible — no obviously wrong distractors
+- Every question MUST include a "hint" field: one sentence that nudges toward the answer without giving it away directly
 
 Return ONLY valid JSON, no markdown:
 {
@@ -109,7 +110,8 @@ Return ONLY valid JSON, no markdown:
           "question": "Question testing understanding",
           "options": ["Option A", "Option B", "Option C", "Option D"],
           "correct": "Option A",
-          "explanation": "Why correct, why others are wrong"
+          "explanation": "Why correct, why others are wrong",
+          "hint": "One-sentence nudge toward the answer without revealing it"
         }
       ]
     }
@@ -119,13 +121,12 @@ Return ONLY valid JSON, no markdown:
 Lesson type: concept_card | analogy | code_snippet | myth_vs_reality | did_you_know | flashcard
   (only use code_snippet if the skill is a programming/technical topic)
 
-Quiz type: multiple_choice | true_false | fill_blank | matching | sequence | spot_the_bug
+Quiz type: multiple_choice | true_false | matching | sequence | spot_the_bug
   (only use spot_the_bug if the skill is a programming/technical topic)
 
 Quiz format (STRICT):
 - multiple_choice: options = 4 strings. correct = full text of one option, copied exactly.
 - true_false: options = ["True","False"]. correct = "True" or "False".
-- fill_blank: question contains ___. options = []. correct = exact word/phrase.
 - matching: options = [term1,term2,term3,def1,def2,def3] — first 3 are SHORT terms (1-4 words each), last 3 are DESCRIPTIVE phrases (6+ words each explaining what the term means or does). correct = "term1:def1,term2:def2,term3:def3". The question must be a plain instruction like "Match each term with its correct description" — do NOT list the terms inside the question text, and do NOT use a bare noun or single word as a definition.
 - sequence: options = 4-5 SHORT individual steps in SCRAMBLED order (each is one brief action, NOT a full sentence with commas). correct = those exact strings joined by | in correct order.
 - spot_the_bug: question = short code with one bug. options = 4 bug descriptions. correct = full text of correct option.
@@ -152,6 +153,7 @@ export interface QuizQuestion {
   options: string[];
   correct: string;
   explanation: string;
+  hint?: string;
 }
 
 interface GeneratedLesson {
