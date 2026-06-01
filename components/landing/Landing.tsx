@@ -27,7 +27,6 @@ export function Landing() {
       <Statement />
       <Features />
       <HowItWorks onStart={start} />
-      <Stats />
       <FooterCTA onStart={start} />
       <SiteFooter />
     </div>
@@ -506,34 +505,6 @@ function HowItWorks({ onStart }: { onStart: () => void }) {
           Map your first path <ArrowRight size={18} weight="bold" />
         </Button>
       </div>
-    </section>
-  );
-}
-
-// ── Stats ─────────────────────────────────────────────────────────────────────
-const STATS = [
-  { value: "14,302", label: "lessons finished", tint: "bg-clay-tint" },
-  { value: "11 days", label: "median active streak", tint: "bg-teal-tint" },
-  { value: "2,600+", label: "skills mapped", tint: "bg-sun-tint" },
-];
-
-function Stats() {
-  return (
-    <section className="border-y-2 border-line bg-paper-2">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-14 grid sm:grid-cols-3 gap-5">
-        {STATS.map((s, i) => (
-          <motion.div
-            key={s.label}
-            variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-            transition={{ delay: i * 0.08 }}
-            className={`rounded-2xl border-2 border-line ${s.tint} px-6 py-7 text-center shadow-hard`}
-          >
-            <p className="font-display text-2xl sm:text-3xl text-ink tabular-nums">{s.value}</p>
-            <p className="mt-1 text-sm font-semibold text-ink-soft">{s.label}</p>
-          </motion.div>
-        ))}
-      </div>
-      <p className="pb-10 text-center font-mono text-[11px] uppercase tracking-wide text-ink-faint">Illustrative — Beacon is brand new.</p>
     </section>
   );
 }
