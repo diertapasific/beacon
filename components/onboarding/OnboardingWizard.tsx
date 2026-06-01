@@ -3,18 +3,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Check } from "@phosphor-icons/react";
+import { ArrowRight, ArrowLeft, Check, Sparkle, CircleNotch } from "@phosphor-icons/react";
 import { Button } from "../ui/Button";
 import { Logo } from "../ui/Logo";
 import { Mascot } from "../ui/Mascot";
 
-const SKILL_SUGGESTIONS = [
-  "Machine Learning",
-  "Grant Writing",
-  "Woodworking",
-  "Music Theory",
+// Trending, high-intent topics across very different domains — not random filler.
+const HOT_TOPICS = [
+  "Prompt Engineering",
+  "Personal Finance",
   "Negotiation",
-  "Watercolour Painting",
+  "Chess Strategy",
+  "Conversational Spanish",
+  "Home Espresso",
 ];
 
 const LEVELS = [
@@ -54,6 +55,20 @@ export function OnboardingWizard() {
   const [goal, setGoal] = useState("");
   const [phase, setPhase] = useState<"form" | "generating" | "error">("form");
   const [error, setError] = useState<string | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
+
+  async function suggestSkill() {
+    setSuggesting(true);
+    try {
+      const res = await fetch("/api/suggest-skill", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.skill) setSkill(data.skill);
+    } catch {
+      // Non-blocking — the user can still type or pick a topic.
+    } finally {
+      setSuggesting(false);
+    }
+  }
 
   const go = (next: number) => {
     setDir(next > step ? 1 : -1);
@@ -137,17 +152,43 @@ export function OnboardingWizard() {
                     className="w-full h-16 rounded-xl border-2 border-line bg-cream px-5 text-lg font-medium
                       text-ink placeholder:text-ink-faint shadow-hard-sm focus:outline-none focus:ring-2 focus:ring-clay"
                   />
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {SKILL_SUGGESTIONS.map((s, i) => (
+                  <div className="mt-5">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-ink-faint">
+                        Hot right now
+                      </p>
                       <button
-                        key={s}
-                        onClick={() => setSkill(s)}
-                        className={`rounded-full border-2 border-line px-3.5 py-1.5 text-sm font-semibold text-ink press
-                          ${i % 3 === 0 ? "bg-clay-tint" : i % 3 === 1 ? "bg-teal-tint" : "bg-sun-tint"}`}
+                        onClick={suggestSkill}
+                        disabled={suggesting}
+                        className="inline-flex items-center gap-1.5 rounded-full border-2 border-dashed border-clay/50
+                          bg-cream px-3 py-1 text-xs font-bold text-clay-deep press disabled:opacity-60 disabled:pointer-events-none"
                       >
-                        {s}
+                        {suggesting ? (
+                          <motion.span
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                            className="inline-flex"
+                          >
+                            <CircleNotch size={14} weight="bold" />
+                          </motion.span>
+                        ) : (
+                          <Sparkle size={14} weight="fill" />
+                        )}
+                        {suggesting ? "Thinking…" : "Surprise me"}
                       </button>
-                    ))}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {HOT_TOPICS.map((s, i) => (
+                        <button
+                          key={s}
+                          onClick={() => setSkill(s)}
+                          className={`rounded-full border-2 border-line px-3.5 py-1.5 text-sm font-semibold text-ink press
+                            ${i % 3 === 0 ? "bg-clay-tint" : i % 3 === 1 ? "bg-teal-tint" : "bg-sun-tint"}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </Step>
               )}
