@@ -468,7 +468,7 @@ function MockProgress() {
 
 // ── How it works ────────────────────────────────────────────────────────────
 const STEPS = [
-  { n: "01", title: "Pick a skill", desc: "Tell Beacon what you want to learn and how much time you have. Anything works." },
+  { n: "01", title: "Pick a skill", desc: "Tell Beacon what you want to learn and how much time you have — or let it suggest something. Anything works." },
   { n: "02", title: "Get your path", desc: "An AI builds a sequenced, multi-phase path in under 20 seconds. Every lesson written, every quiz generated, every hint pre-loaded." },
   { n: "03", title: "Learn daily — with AI on call", desc: "Open the app, clear a lesson, ask your AI tutor anything you're fuzzy on. 90 seconds. Streak stays alive." },
 ];
