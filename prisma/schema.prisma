@@ -25,6 +25,7 @@ model User {
   progress     UserProgress[]
   streak       Streak?
   achievements Achievement[]
+  feedback     Feedback[]
 }
 
 model LearningPath {
@@ -102,4 +103,17 @@ model Achievement {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String? // nullable: suggestions outlive the account that sent them
+  category  String   @default("idea") // "idea" | "bug" | "other"
+  message   String
+  createdAt DateTime @default(now())
+
+  // SetNull (not Cascade) so deleting an account keeps the feedback for review.
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
 }

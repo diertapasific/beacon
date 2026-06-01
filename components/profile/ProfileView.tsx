@@ -99,6 +99,12 @@ export function ProfileView({ data }: { data: ProfileData }) {
         <MiniStat icon={<Trophy size={16} weight="fill" />} value={`${data.totals.achievements}`} label="Badges" />
       </motion.div>
 
+      {/* Suggest an idea */}
+      <motion.section variants={item} className="mt-12">
+        <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-4">/ Help shape Beacon</h2>
+        <FeedbackForm />
+      </motion.section>
+
       {/* Account */}
       <motion.section variants={item} className="mt-12">
         <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-4">/ Account</h2>
@@ -129,6 +135,134 @@ function MiniStat({ icon, value, label }: { icon: React.ReactNode; value: string
       <span className="text-clay-deep">{icon}</span>
       <p className="mt-1.5 font-mono text-xl font-bold tabular-nums text-ink leading-none">{value}</p>
       <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wide text-ink-faint">{label}</p>
+    </div>
+  );
+}
+
+// ── Feedback: let users suggest ideas / report bugs ───────────────────────────
+const CATEGORIES = [
+  { id: "idea", label: "Idea", icon: Lightbulb },
+  { id: "bug", label: "Bug", icon: Bug },
+  { id: "other", label: "Other", icon: ChatCircleDots },
+] as const;
+
+const PLACEHOLDERS: Record<string, string> = {
+  idea: "What would make Beacon better for you?",
+  bug: "What went wrong, and where? The more detail the better.",
+  other: "Anything else on your mind?",
+};
+
+function FeedbackForm() {
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>("idea");
+  const [message, setMessage] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [error, setError] = useState("");
+
+  async function submit() {
+    if (!message.trim()) return;
+    setState("sending");
+    setError("");
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, message: message.trim() }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Could not send. Please try again.");
+      setState("sent");
+      setMessage("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not send. Please try again.");
+      setState("error");
+    }
+  }
+
+  if (state === "sent") {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border-2 border-line bg-cream shadow-hard p-6 flex items-start gap-3"
+      >
+        <span className="grid place-items-center w-9 h-9 rounded-lg bg-clay-tint text-clay-deep shrink-0">
+          <CheckCircle size={18} weight="fill" />
+        </span>
+        <div>
+          <h3 className="text-sm font-bold text-ink">Thank you</h3>
+          <p className="mt-1 text-sm text-ink-soft leading-relaxed max-w-[60ch]">
+            Your note landed with the team. It genuinely helps decide what we build next.
+          </p>
+          <button
+            onClick={() => setState("idle")}
+            className="mt-3 font-mono text-[11px] font-bold uppercase tracking-wide text-clay-deep hover:text-clay active:scale-[0.97] transition"
+          >
+            Send another
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const charsLeft = 2000 - message.length;
+
+  return (
+    <div className="rounded-2xl border-2 border-line bg-cream shadow-hard p-5 sm:p-6 space-y-4">
+      {/* Category picker */}
+      <div className="flex flex-wrap gap-2">
+        {CATEGORIES.map(({ id, label, icon: Icon }) => {
+          const active = category === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setCategory(id)}
+              className={`inline-flex items-center gap-1.5 rounded-xl border-2 px-3 h-9 text-sm font-semibold transition-colors active:scale-[0.97] ${
+                active
+                  ? "bg-clay text-cream border-line shadow-hard-sm"
+                  : "bg-paper text-ink-soft border-line hover:text-ink hover:bg-paper-2"
+              }`}
+            >
+              <Icon size={15} weight={active ? "fill" : "regular"} />
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      <label className="block">
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value.slice(0, 2000))}
+          rows={4}
+          placeholder={PLACEHOLDERS[category]}
+          className="w-full rounded-xl border-2 border-line bg-paper px-4 py-3 text-sm text-ink leading-relaxed
+            placeholder:text-ink-faint resize-y focus:outline-none focus:border-clay"
+        />
+      </label>
+
+      {state === "error" && <p className="text-sm font-medium text-berry">{error}</p>}
+
+      <div className="flex items-center justify-between gap-4">
+        <span className="font-mono text-[11px] text-ink-faint tabular-nums">{charsLeft} left</span>
+        <Button
+          variant="primary"
+          size="md"
+          onClick={submit}
+          disabled={!message.trim() || state === "sending"}
+        >
+          {state === "sending" ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-cream animate-bounce" />
+              Sending
+            </>
+          ) : (
+            <>
+              <PaperPlaneTilt size={17} weight="fill" />
+              Send
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
