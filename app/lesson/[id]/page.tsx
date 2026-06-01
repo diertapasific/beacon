@@ -18,7 +18,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
       path: {
         include: {
           lessons: {
-            orderBy: [{ weekNumber: "asc" }, { order: "asc" }],
+            orderBy: [{ phaseNumber: "asc" }, { order: "asc" }],
             include: { progress: { where: { userId: user.id } } },
           },
         },

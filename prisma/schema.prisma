@@ -44,8 +44,8 @@ model LearningPath {
 model Lesson {
   id           String     @id @default(cuid())
   pathId       String
-  weekNumber   Int
-  order        Int // Position within the week
+  phaseNumber  Int
+  order        Int // Position within the phase
   type         LessonType
   headline     String
   coreIdea     String

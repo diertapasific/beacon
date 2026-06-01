@@ -4,7 +4,7 @@ export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export const PATH_MODEL = "llama-3.3-70b-versatile";
 
-const WEEK_THEMES = [
+const PHASE_THEMES = [
   "Foundations — core mental models, key terminology, why this skill matters",
   "Core Techniques — essential tools, libraries, and hands-on workflows",
   "Depth — advanced concepts, tradeoffs, edge cases, comparing approaches",
@@ -12,27 +12,27 @@ const WEEK_THEMES = [
   "Mastery — expert patterns, debugging, real-world application, career context",
 ] as const;
 
-/** Pick week themes evenly across however many weeks the path has. */
-function pickThemes(totalWeeks: number): string[] {
-  const all = WEEK_THEMES as unknown as string[];
-  if (totalWeeks >= all.length) return all.slice(0, totalWeeks);
+/** Pick phase themes evenly across however many phases the path has. */
+function pickThemes(totalPhases: number): string[] {
+  const all = PHASE_THEMES as unknown as string[];
+  if (totalPhases >= all.length) return all.slice(0, totalPhases);
   // Spread evenly: always start with Foundations, always end with Mastery
   const indices = [0];
-  const step = (all.length - 1) / (totalWeeks - 1);
-  for (let i = 1; i < totalWeeks - 1; i++) indices.push(Math.round(i * step));
+  const step = (all.length - 1) / (totalPhases - 1);
+  for (let i = 1; i < totalPhases - 1; i++) indices.push(Math.round(i * step));
   indices.push(all.length - 1);
   return indices.map((i) => all[i]);
 }
 
-/** How many weeks and how many lessons per week based on level + commitment. */
+/** How many phases and how many lessons per phase based on level + commitment. */
 export function getPathStructure(level: string, hoursPerWeek: number): {
-  weekCount: number;
+  phaseCount: number;
   minLessons: number;
   maxLessons: number;
 } {
   const h = Number(hoursPerWeek);
 
-  const weekCount =
+  const phaseCount =
     level === "beginner"     ? (h <= 2 ? 3 : 4) :
     level === "advanced"     ? (h <= 2 ? 4 : 5) :
     /* intermediate */          (h <= 2 ? 3 : h >= 5 ? 5 : 4);
@@ -40,33 +40,33 @@ export function getPathStructure(level: string, hoursPerWeek: number): {
   const minLessons = h <= 2 ? 4 : h <= 4 ? 5 : 6;
   const maxLessons = h <= 2 ? 5 : h <= 4 ? 7 : 8;
 
-  return { weekCount, minLessons, maxLessons };
+  return { phaseCount, minLessons, maxLessons };
 }
 
-export function buildWeekPrompt(
+export function buildPhasePrompt(
   skill: string,
   level: string,
   hoursPerWeek: number,
   goal: string | undefined,
-  weekNumber: number,
-  totalWeeks: number,
+  phaseNumber: number,
+  totalPhases: number,
   minLessons: number,
   maxLessons: number,
   coveredTopics: string[] = [],
 ): string {
-  const themes = pickThemes(totalWeeks);
-  const theme = themes[weekNumber - 1];
+  const themes = pickThemes(totalPhases);
+  const theme = themes[phaseNumber - 1];
   const exclusionBlock = coveredTopics.length > 0
     ? `\nALREADY COVERED — DO NOT REPEAT OR OVERLAP THESE TOPICS:\n${coveredTopics.map((t) => `- ${t}`).join("\n")}\nEvery lesson in this path MUST be meaningfully distinct from the above. Build forward, not sideways.\n`
     : "";
   return `
-You are a world-class instructional designer. Generate Week ${weekNumber} of ${totalWeeks} for a micro-learning curriculum.
+You are a world-class instructional designer. Generate Phase ${phaseNumber} of ${totalPhases} for a micro-learning curriculum.
 
 Skill: ${skill}
 Level: ${level}
 Hours per week: ${hoursPerWeek}
 Goal: ${goal || "General mastery"}
-Week ${weekNumber} focus: ${theme}${exclusionBlock}
+Phase ${phaseNumber} focus: ${theme}${exclusionBlock}
 
 LESSON RULES (non-negotiable):
 - Generate between ${minLessons} and ${maxLessons} lessons — choose the count that best fits the theme's natural scope. Do not pad to hit a number.
@@ -82,7 +82,7 @@ CRITICAL — MATCH THE SKILL DOMAIN:
 - If NON-TECHNICAL: NEVER include code_snippet lessons. NEVER mention Python, JavaScript, or any programming language. Use only concept_card, analogy, myth_vs_reality, did_you_know, or flashcard types.
 - If TECHNICAL: code_snippet lessons are appropriate.
 
-WEEK ${weekNumber} MUST INCLUDE:
+PHASE ${phaseNumber} MUST INCLUDE:
 - At least 1 lesson comparing two strategies, approaches, or mechanics directly
 - At least 1 myth_vs_reality or did_you_know lesson
 - At least 1 analogy lesson that connects the concept to everyday life
@@ -97,7 +97,7 @@ QUIZ RULES:
 
 Return ONLY valid JSON, no markdown:
 {
-  "week": ${weekNumber},
+  "phase": ${phaseNumber},
   "theme": "${theme}",
   "lessons": [
     {
@@ -149,16 +149,16 @@ Quiz format (STRICT):
 `;
 }
 
-/** Legacy single-call prompt — kept for reference, use buildWeekPrompt instead. */
+/** Legacy single-call prompt — kept for reference, use buildPhasePrompt instead. */
 export function buildPathPrompt(
   skill: string,
   level: string,
   hoursPerWeek: number,
   goal?: string
 ): string {
-  const { weekCount, minLessons, maxLessons } = getPathStructure(level, hoursPerWeek);
-  return Array.from({ length: weekCount }, (_, i) => i + 1)
-    .map((w) => buildWeekPrompt(skill, level, hoursPerWeek, goal, w, weekCount, minLessons, maxLessons))
+  const { phaseCount, minLessons, maxLessons } = getPathStructure(level, hoursPerWeek);
+  return Array.from({ length: phaseCount }, (_, i) => i + 1)
+    .map((p) => buildPhasePrompt(skill, level, hoursPerWeek, goal, p, phaseCount, minLessons, maxLessons))
     .join("\n\n---\n\n");
 }
 
@@ -183,31 +183,31 @@ interface GeneratedLesson {
   quiz: QuizQuestion[];
 }
 
-interface GeneratedWeek {
-  week: number;
+interface GeneratedPhase {
+  phase: number;
   theme: string;
   lessons: GeneratedLesson[];
 }
 
 export interface GeneratedPath {
   skill: string;
-  totalWeeks: number;
-  weeks: GeneratedWeek[];
+  totalPhases: number;
+  phases: GeneratedPhase[];
 }
 
 function stripFences(raw: string): string {
   return raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
 }
 
-/** Parse a single-week response from buildWeekPrompt. */
-export function parseWeekResponse(raw: string, weekNumber: number): GeneratedWeek {
-  const parsed = JSON.parse(stripFences(raw)) as GeneratedWeek;
+/** Parse a single-phase response from buildPhasePrompt. */
+export function parsePhaseResponse(raw: string, phaseNumber: number): GeneratedPhase {
+  const parsed = JSON.parse(stripFences(raw)) as { phase?: number; theme?: string; lessons?: GeneratedLesson[] };
   if (!Array.isArray(parsed.lessons) || parsed.lessons.length < 1) {
-    throw new Error(`Week ${weekNumber} returned no lessons`);
+    throw new Error(`Phase ${phaseNumber} returned no lessons`);
   }
   return {
-    week: weekNumber,
-    theme: parsed.theme ?? WEEK_THEMES[weekNumber - 1],
+    phase: phaseNumber,
+    theme: parsed.theme ?? PHASE_THEMES[phaseNumber - 1],
     lessons: parsed.lessons,
   };
 }
@@ -215,12 +215,12 @@ export function parseWeekResponse(raw: string, weekNumber: number): GeneratedWee
 /** Legacy: parse a single full-path response. */
 export function parsePathResponse(raw: string): GeneratedPath {
   const parsed = JSON.parse(stripFences(raw)) as GeneratedPath;
-  if (!parsed.weeks || !Array.isArray(parsed.weeks) || parsed.weeks.length === 0) {
-    throw new Error("Generated path has no weeks");
+  if (!parsed.phases || !Array.isArray(parsed.phases) || parsed.phases.length === 0) {
+    throw new Error("Generated path has no phases");
   }
-  for (const week of parsed.weeks) {
-    if (!Array.isArray(week.lessons) || week.lessons.length === 0) {
-      throw new Error(`Week ${week.week} has no lessons`);
+  for (const phase of parsed.phases) {
+    if (!Array.isArray(phase.lessons) || phase.lessons.length === 0) {
+      throw new Error(`Phase ${phase.phase} has no lessons`);
     }
   }
   return parsed;

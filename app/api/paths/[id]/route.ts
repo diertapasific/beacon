@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const path = await prisma.learningPath.findUnique({
     where: { id },
     include: {
-      lessons: { orderBy: [{ weekNumber: "asc" }, { order: "asc" }] },
+      lessons: { orderBy: [{ phaseNumber: "asc" }, { order: "asc" }] },
     },
   });
 

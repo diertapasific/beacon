@@ -32,7 +32,7 @@ const item = {
 
 export function Dashboard({ data }: { data: DashboardData }) {
   const firstName = data.name?.split(" ")[0];
-  const weeks = groupByWeek(data.lessons);
+  const phases = groupByPhase(data.lessons);
   const nextLesson = data.lessons.find((l) => l.id === data.nextLessonId);
   const pct = data.totalLessons ? Math.round((data.totalCompleted / data.totalLessons) * 100) : 0;
 
@@ -117,7 +117,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
           <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft">/ Your path</h2>
           <span className="font-mono text-[11px] font-bold text-ink-faint tabular-nums">{pct}% complete</span>
         </div>
-        <PathRoute weeks={weeks} nextLessonId={data.nextLessonId} weekThemes={data.weekThemes} />
+        <PathRoute phases={phases} nextLessonId={data.nextLessonId} phaseThemes={data.phaseThemes} />
       </motion.section>
 
       {/* Achievements */}
@@ -263,45 +263,45 @@ function AllDoneBlock({ skill, level, goal, completed, coveredTopics }: {
   );
 }
 
-// ── Path: sectioned list with collapsible weeks ───────────────────────────────
-function PathRoute({ weeks, nextLessonId, weekThemes }: { weeks: WeekGroup[]; nextLessonId: string | null; weekThemes: Record<number, string> }) {
-  const activeWeek = weeks.find((w) => w.lessons.some((l) => l.id === nextLessonId))?.weekNumber
-    ?? weeks.find((w) => w.lessons.some((l) => !l.completed))?.weekNumber
-    ?? weeks[weeks.length - 1]?.weekNumber;
+// ── Path: sectioned list with collapsible phases ──────────────────────────────
+function PathRoute({ phases, nextLessonId, phaseThemes }: { phases: PhaseGroup[]; nextLessonId: string | null; phaseThemes: Record<number, string> }) {
+  const activePhase = phases.find((p) => p.lessons.some((l) => l.id === nextLessonId))?.phaseNumber
+    ?? phases.find((p) => p.lessons.some((l) => !l.completed))?.phaseNumber
+    ?? phases[phases.length - 1]?.phaseNumber;
 
-  const [openWeeks, setOpenWeeks] = useState<Set<number>>(() => new Set([activeWeek]));
+  const [openPhases, setOpenPhases] = useState<Set<number>>(() => new Set([activePhase]));
 
-  function toggle(wn: number) {
-    setOpenWeeks((prev) => {
+  function toggle(pn: number) {
+    setOpenPhases((prev) => {
       const next = new Set(prev);
-      if (next.has(wn)) next.delete(wn);
-      else next.add(wn);
+      if (next.has(pn)) next.delete(pn);
+      else next.add(pn);
       return next;
     });
   }
 
   return (
     <div className="rounded-xl border-2 border-line bg-cream overflow-hidden shadow-hard divide-y-2 divide-line">
-      {weeks.map((week) => {
-        const completed = week.lessons.filter((l) => l.completed).length;
-        const allDone = completed === week.lessons.length;
-        const isOpen = openWeeks.has(week.weekNumber);
-        const wpct = week.lessons.length ? Math.round((completed / week.lessons.length) * 100) : 0;
+      {phases.map((phase) => {
+        const completed = phase.lessons.filter((l) => l.completed).length;
+        const allDone = completed === phase.lessons.length;
+        const isOpen = openPhases.has(phase.phaseNumber);
+        const ppct = phase.lessons.length ? Math.round((completed / phase.lessons.length) * 100) : 0;
         return (
-          <div key={week.weekNumber}>
-            <button onClick={() => toggle(week.weekNumber)} className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-left group hover:bg-paper-2 transition-colors">
+          <div key={phase.phaseNumber}>
+            <button onClick={() => toggle(phase.phaseNumber)} className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-left group hover:bg-paper-2 transition-colors">
               <span className={`inline-flex items-center rounded-full border-2 border-line px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide shrink-0
                 ${allDone ? "bg-teal text-cream border-teal" : "bg-sun-tint text-ink"}`}>
-                {allDone ? "Done" : `Phase ${week.weekNumber}`}
+                {allDone ? "Done" : `Phase ${phase.phaseNumber}`}
               </span>
               <span className="flex-1 text-sm font-bold text-ink">
-                {weekThemes[week.weekNumber] ?? `Phase ${week.weekNumber}`}
+                {phaseThemes[phase.phaseNumber] ?? `Phase ${phase.phaseNumber}`}
               </span>
               <div className="flex items-center gap-3 shrink-0">
                 <div className="hidden sm:block w-16 h-2.5 rounded-full bg-paper border-2 border-line overflow-hidden">
-                  <div className={`h-full ${allDone ? "bg-teal" : "bg-clay"}`} style={{ width: `${wpct}%` }} />
+                  <div className={`h-full ${allDone ? "bg-teal" : "bg-clay"}`} style={{ width: `${ppct}%` }} />
                 </div>
-                <span className="font-mono text-[11px] font-bold text-ink-soft tabular-nums">{completed}/{week.lessons.length}</span>
+                <span className="font-mono text-[11px] font-bold text-ink-soft tabular-nums">{completed}/{phase.lessons.length}</span>
                 <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }} className="text-ink-soft">
                   <CaretDown size={14} weight="bold" />
                 </motion.span>
@@ -319,7 +319,7 @@ function PathRoute({ weeks, nextLessonId, weekThemes }: { weeks: WeekGroup[]; ne
                   style={{ overflow: "hidden" }}
                 >
                   <div className="px-4 sm:px-5 pb-3 border-t-2 border-dashed border-ink/25 divide-y-2 divide-dashed divide-ink/20">
-                    {week.lessons.map((lesson, li) => (
+                    {phase.lessons.map((lesson, li) => (
                       <LessonRow key={lesson.id} lesson={lesson} index={li} isNext={lesson.id === nextLessonId} />
                     ))}
                   </div>
@@ -419,15 +419,15 @@ function AchievementShelf({ earned }: { earned: DashboardData["achievements"] })
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-interface WeekGroup { weekNumber: number; lessons: LessonSummary[] }
+interface PhaseGroup { phaseNumber: number; lessons: LessonSummary[] }
 
-function groupByWeek(lessons: LessonSummary[]): WeekGroup[] {
+function groupByPhase(lessons: LessonSummary[]): PhaseGroup[] {
   const map = new Map<number, LessonSummary[]>();
   for (const l of lessons) {
-    if (!map.has(l.weekNumber)) map.set(l.weekNumber, []);
-    map.get(l.weekNumber)!.push(l);
+    if (!map.has(l.phaseNumber)) map.set(l.phaseNumber, []);
+    map.get(l.phaseNumber)!.push(l);
   }
-  return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([weekNumber, lessons]) => ({ weekNumber, lessons }));
+  return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([phaseNumber, lessons]) => ({ phaseNumber, lessons }));
 }
 
 function greeting(): string {

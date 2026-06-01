@@ -21,7 +21,7 @@ const COPY = {
   },
   signup: {
     title: "Start learning today",
-    sub: "One skill, four weeks, ninety seconds a day.",
+    sub: "One skill, a clear path, ninety seconds a day.",
     cta: "Create account",
     switchText: "Already have an account?",
     switchLink: "/auth/login",
@@ -98,7 +98,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             at a time.
           </h1>
           <p className="mt-6 text-ink-soft leading-relaxed max-w-[42ch]">
-            A four-week path for any skill, dripped to you as short lessons. Quiz, earn XP, keep the streak alive.
+            A structured path for any skill, dripped to you as short lessons. Quiz, earn XP, keep the streak alive.
           </p>
 
           {/* Mini app preview */}

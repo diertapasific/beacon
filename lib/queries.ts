@@ -9,7 +9,7 @@ function todayKey(): string {
 
 export interface LessonSummary {
   id: string;
-  weekNumber: number;
+  phaseNumber: number;
   order: number;
   type: string;
   headline: string;
@@ -24,7 +24,7 @@ export interface DashboardData {
   xp: { total: number; level: number; progressPct: number; toNext: number };
   streak: { current: number; longest: number; lastCompletedAt: string | null };
   path: { id: string; skill: string; level: string; goal: string | null };
-  weekThemes: Record<number, string>; // weekNumber → short theme label
+  phaseThemes: Record<number, string>; // phaseNumber → short theme label
   lessons: LessonSummary[];
   nextLessonId: string | null;
   completedToday: number;
@@ -59,7 +59,7 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
       where: { id: pathId },
       include: {
         lessons: {
-          orderBy: [{ weekNumber: "asc" }, { order: "asc" }],
+          orderBy: [{ phaseNumber: "asc" }, { order: "asc" }],
           include: { progress: { where: { userId } } },
         },
       },
@@ -75,7 +75,7 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
 
   const lessons: LessonSummary[] = path.lessons.map((l, i) => ({
     id: l.id,
-    weekNumber: l.weekNumber,
+    phaseNumber: l.phaseNumber,
     order: l.order,
     type: l.type,
     headline: l.headline,
@@ -88,12 +88,17 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
   const completedToday = path.lessons.filter((l) => l.progress[0]?.completedOn === today).length;
   const totalCompleted = lessons.filter((l) => l.completed).length;
 
-  // Extract week themes from rawJson (stored as GeneratedPath)
-  const weekThemes: Record<number, string> = {};
-  const raw = path.rawJson as { weeks?: Array<{ week: number; theme: string }> };
-  for (const w of raw.weeks ?? []) {
+  // Extract phase themes from rawJson (stored as GeneratedPath).
+  // Falls back to the legacy `weeks` shape for paths generated before the rename.
+  const phaseThemes: Record<number, string> = {};
+  const raw = path.rawJson as {
+    phases?: Array<{ phase: number; theme: string }>;
+    weeks?: Array<{ week: number; theme: string }>;
+  };
+  const groups = raw.phases ?? raw.weeks?.map((w) => ({ phase: w.week, theme: w.theme })) ?? [];
+  for (const g of groups) {
     // Trim everything after " — " to get just the short label e.g. "Foundations"
-    weekThemes[w.week] = w.theme?.split(" — ")[0]?.trim() ?? `Phase ${w.week}`;
+    phaseThemes[g.phase] = g.theme?.split(" — ")[0]?.trim() ?? `Phase ${g.phase}`;
   }
 
   return {
@@ -110,7 +115,7 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
       lastCompletedAt: streak?.lastCompletedAt?.toISOString() ?? null,
     },
     path: { id: path.id, skill: path.skill, level: path.level, goal: path.goal },
-    weekThemes,
+    phaseThemes,
     lessons,
     nextLessonId: nextLesson?.id ?? null,
     completedToday,

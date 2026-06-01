@@ -260,7 +260,7 @@ function Features() {
           n="01" spot="clay" icon={MagicWand}
           eyebrow="Instant curriculum"
           title="Type a skill. Get a real path."
-          body="Beacon designs a coherent four-week plan, sequenced from first principles — not a pile of links. Generated once, yours forever."
+          body="Beacon designs a coherent, multi-phase path, sequenced from first principles — not a pile of links. Go at your own pace. Generated once, yours forever."
           visual={<MockPath />}
         />
         <FeatureRow
@@ -330,21 +330,21 @@ function MockShell({ children, tilt = -1.2 }: { children: React.ReactNode; tilt?
 }
 
 function MockPath() {
-  const weeks = [
-    { w: "01", t: "Foundations", done: true },
-    { w: "02", t: "Core mechanics", done: false },
-    { w: "03", t: "Going deeper", done: false },
-    { w: "04", t: "Putting it together", done: false },
+  const phases = [
+    { n: "01", t: "Foundations", done: true },
+    { n: "02", t: "Core mechanics", done: false },
+    { n: "03", t: "Going deeper", done: false },
+    { n: "04", t: "Putting it together", done: false },
   ];
   return (
     <MockShell tilt={1.2}>
-      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint mb-3">Your 4-week path</p>
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint mb-3">Your learning path</p>
       <div className="divide-y-2 divide-ink/15 border-y-2 border-ink/15">
-        {weeks.map((wk) => (
-          <div key={wk.w} className="flex items-center gap-3 py-3">
-            <span className={`font-mono text-xs font-bold ${wk.done ? "text-teal-deep" : "text-ink-faint"}`}>{wk.w}</span>
-            <span className="flex-1 text-sm font-medium text-ink">{wk.t}</span>
-            {wk.done
+        {phases.map((ph) => (
+          <div key={ph.n} className="flex items-center gap-3 py-3">
+            <span className={`font-mono text-xs font-bold ${ph.done ? "text-teal-deep" : "text-ink-faint"}`}>{ph.n}</span>
+            <span className="flex-1 text-sm font-medium text-ink">{ph.t}</span>
+            {ph.done
               ? <span className="grid place-items-center w-5 h-5 rounded-full bg-teal text-cream border-2 border-line"><Check size={10} weight="bold" /></span>
               : <span className="font-mono text-[10px] text-ink-faint">6 lessons</span>}
           </div>
@@ -469,7 +469,7 @@ function MockProgress() {
 // ── How it works ────────────────────────────────────────────────────────────
 const STEPS = [
   { n: "01", title: "Pick a skill", desc: "Tell Beacon what you want to learn and how much time you have. Anything works." },
-  { n: "02", title: "Get your path", desc: "An AI builds a sequenced four-week plan in under 20 seconds. Every lesson written, every quiz generated, every hint pre-loaded." },
+  { n: "02", title: "Get your path", desc: "An AI builds a sequenced, multi-phase path in under 20 seconds. Every lesson written, every quiz generated, every hint pre-loaded." },
   { n: "03", title: "Learn daily — with AI on call", desc: "Open the app, clear a lesson, ask your AI tutor anything you're fuzzy on. 90 seconds. Streak stays alive." },
 ];
 

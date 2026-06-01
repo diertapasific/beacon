@@ -1,4 +1,4 @@
-import { groq, buildWeekPrompt, parseWeekResponse, getPathStructure, PATH_MODEL } from "@/lib/groq";
+import { groq, buildPhasePrompt, parsePhaseResponse, getPathStructure, PATH_MODEL } from "@/lib/groq";
 import type { GeneratedPath } from "@/lib/groq";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
@@ -52,19 +52,19 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { weekCount, minLessons, maxLessons } = getPathStructure(String(level), Number(hoursPerWeek));
+    const { phaseCount, minLessons, maxLessons } = getPathStructure(String(level), Number(hoursPerWeek));
 
-    // Generate weeks sequentially to stay within free-tier TPM limits.
-    const weekNums = Array.from({ length: weekCount }, (_, i) => i + 1);
-    const weekCompletions = [];
-    for (const week of weekNums) {
+    // Generate phases sequentially to stay within free-tier TPM limits.
+    const phaseNums = Array.from({ length: phaseCount }, (_, i) => i + 1);
+    const phaseCompletions = [];
+    for (const phase of phaseNums) {
       const completion = await withRetry(() =>
         groq.chat.completions.create({
           model: PATH_MODEL,
           messages: [
             {
               role: "user",
-              content: buildWeekPrompt(skill, level, Number(hoursPerWeek), goal, week, weekCount, minLessons, maxLessons, covered),
+              content: buildPhasePrompt(skill, level, Number(hoursPerWeek), goal, phase, phaseCount, minLessons, maxLessons, covered),
             },
           ],
           max_tokens: 8000,
@@ -72,17 +72,17 @@ export async function POST(req: Request) {
           response_format: { type: "json_object" },
         })
       );
-      weekCompletions.push(completion);
+      phaseCompletions.push(completion);
     }
 
-    const weeks = weekCompletions.map((c, i) =>
-      parseWeekResponse(c.choices[0]?.message?.content ?? "", i + 1)
+    const phases = phaseCompletions.map((c, i) =>
+      parsePhaseResponse(c.choices[0]?.message?.content ?? "", i + 1)
     );
 
     const parsed: GeneratedPath = {
       skill: String(skill),
-      totalWeeks: weekCount,
-      weeks,
+      totalPhases: phaseCount,
+      phases,
     };
 
     const path = await prisma.learningPath.create({
@@ -94,9 +94,9 @@ export async function POST(req: Request) {
         goal: goal ? String(goal) : null,
         rawJson: parsed as unknown as Prisma.InputJsonValue,
         lessons: {
-          create: parsed.weeks.flatMap((week) =>
-            week.lessons.map((lesson) => ({
-              weekNumber: week.week,
+          create: parsed.phases.flatMap((phase) =>
+            phase.lessons.map((lesson) => ({
+              phaseNumber: phase.phase,
               order: lesson.order,
               type: coerceType(lesson.type),
               headline: lesson.headline,

@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowLeft, Check } from "@phosphor-icons/react";
 import { Button } from "../ui/Button";
 import { Logo } from "../ui/Logo";
-import { Blob } from "../ui/Riso";
 import { Mascot } from "../ui/Mascot";
 
 const SKILL_SUGGESTIONS = [
@@ -33,7 +32,7 @@ const PACES = [
 
 const GENERATING_MESSAGES = [
   "Mapping the fundamentals…",
-  "Sequencing four weeks of lessons…",
+  "Sequencing your lessons into phases…",
   "Writing bite-sized concepts…",
   "Crafting quizzes…",
   "Polishing your path…",
@@ -305,11 +304,7 @@ function GeneratingScreen({ skill }: { skill: string }) {
   }, []);
 
   return (
-    <div className="relative min-h-[100dvh] grid place-items-center px-6 text-center overflow-hidden">
-      <Blob spot="clay" shape={0} spin={12} className="w-80 h-80 -top-20 -left-16 opacity-75" />
-      <Blob spot="teal" shape={2} motion="float" className="w-72 h-72 -bottom-16 -right-12 opacity-65" />
-      <Blob spot="sun" shape={1} className="w-44 h-44 top-[18%] right-[14%] opacity-70" />
-
+    <div className="relative min-h-[100dvh] grid place-items-center px-6 text-center overflow-hidden bg-paper">
       <div className="relative z-10 flex flex-col items-center">
         {/* Mascot floating with ground shadow */}
         <div className="relative flex flex-col items-center">
