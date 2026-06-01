@@ -11,12 +11,12 @@ export function CustomCursor() {
   const mouseY = useMotionValue(-200);
 
   // Dot follows cursor almost instantly
-  const dotX = useSpring(mouseX, { stiffness: 600, damping: 40 });
-  const dotY = useSpring(mouseY, { stiffness: 600, damping: 40 });
+  const dotX = useSpring(mouseX, { stiffness: 900, damping: 45 });
+  const dotY = useSpring(mouseY, { stiffness: 900, damping: 45 });
 
-  // Ring lags behind with spring physics
-  const ringX = useSpring(mouseX, { stiffness: 150, damping: 22 });
-  const ringY = useSpring(mouseY, { stiffness: 150, damping: 22 });
+  // Ring tracks closely — just a hair of spring so it feels alive, not laggy
+  const ringX = useSpring(mouseX, { stiffness: 550, damping: 38 });
+  const ringY = useSpring(mouseY, { stiffness: 550, damping: 38 });
 
   useEffect(() => {
     // Only show on devices with a real mouse
