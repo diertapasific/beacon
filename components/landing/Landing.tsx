@@ -38,12 +38,12 @@ function SiteHeader() {
     <header className="sticky top-0 z-40 border-b-2 border-line bg-paper/90 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
         <Logo />
-        <nav className="flex items-center gap-2 sm:gap-3">
-          <Link href="/auth/login" className="text-sm font-semibold text-ink hover:text-clay-deep transition-colors px-3 py-2">
-            Log in
+        <nav className="flex items-center gap-2">
+          <Link href="/auth/login">
+            <Button variant="ghost" size="md">Log in</Button>
           </Link>
           <Link href="/auth/signup">
-            <Button size="md">Get started</Button>
+            <Button variant="secondary" size="md">Sign up</Button>
           </Link>
         </nav>
       </div>
