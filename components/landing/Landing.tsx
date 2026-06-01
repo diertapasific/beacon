@@ -8,7 +8,6 @@ import {
   MagicWand, ChartLineUp, Repeat, Lighthouse,
 } from "@phosphor-icons/react";
 import { Button } from "../ui/Button";
-import { MagneticButton } from "../ui/MagneticButton";
 import { Logo } from "../ui/Logo";
 import { Blob, Stamp } from "../ui/Riso";
 import { Mascot } from "../ui/Mascot";
@@ -94,9 +93,9 @@ function Hero({ onStart }: { onStart: () => void }) {
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-9 flex flex-wrap items-center gap-3">
-            <MagneticButton onClick={onStart}>
+            <Button size="lg" onClick={onStart}>
               Start learning <ArrowRight size={18} weight="bold" />
-            </MagneticButton>
+            </Button>
             <Link href="#how">
               <Button variant="secondary" size="lg">How it works</Button>
             </Link>
@@ -120,15 +119,8 @@ function HeroPreview() {
       initial={{ opacity: 0, y: 30, rotate: 2 }}
       animate={{ opacity: 1, y: 0, rotate: 1.5 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-      className="relative pt-14"
+      className="relative"
     >
-      <motion.div
-        animate={{ y: [0, -10, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-2 left-1/2 -translate-x-1/2 z-10"
-      >
-        <Mascot state="idle" size={200} />
-      </motion.div>
       <div className="rounded-2xl border-2 border-line bg-cream p-5 sm:p-6 shadow-hard-lg">
         <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint">
           <span>Curriculum</span>
@@ -434,9 +426,9 @@ function HowItWorks({ onStart }: { onStart: () => void }) {
         ))}
       </div>
       <div className="mt-10 flex justify-center">
-        <MagneticButton onClick={onStart}>
+        <Button size="lg" onClick={onStart}>
           Map your first path <ArrowRight size={18} weight="bold" />
-        </MagneticButton>
+        </Button>
       </div>
     </section>
   );
@@ -481,17 +473,18 @@ function FooterCTA({ onStart }: { onStart: () => void }) {
         <Blob spot="clay" shape={1} className="w-64 h-64 -top-20 -left-16 opacity-90" />
         <Blob spot="teal" shape={3} motion="float" className="w-52 h-52 -bottom-16 -right-12 opacity-80" />
 
+        <div className="absolute bottom-0 right-6 sm:right-10 pointer-events-none select-none hidden sm:block">
+          <Mascot state="idle" size={160} />
+        </div>
+
         <div className="relative z-10">
-          <div className="flex justify-center mb-4">
-            <Mascot state="idle" size={180} />
-          </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none max-w-[20ch] mx-auto">
             Insert coin. Start in 30 seconds.
           </h2>
           <div className="mt-8 flex justify-center">
-            <MagneticButton onClick={onStart}>
+            <Button size="lg" onClick={onStart}>
               Start learning free <ArrowRight size={18} weight="bold" />
-            </MagneticButton>
+            </Button>
           </div>
           <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 font-mono text-sm text-ink-soft">
             {["Free to start", "No card required", "Any skill"].map((t) => (
