@@ -54,26 +54,26 @@ export async function POST(req: Request) {
   try {
     const { weekCount, minLessons, maxLessons } = getPathStructure(String(level), Number(hoursPerWeek));
 
-    // Generate all weeks in parallel — each call gets its own full token budget.
+    // Generate weeks sequentially to stay within free-tier TPM limits.
     const weekNums = Array.from({ length: weekCount }, (_, i) => i + 1);
-    const weekCompletions = await Promise.all(
-      weekNums.map((week) =>
-        withRetry(() =>
-          groq.chat.completions.create({
-            model: PATH_MODEL,
-            messages: [
-              {
-                role: "user",
-                content: buildWeekPrompt(skill, level, Number(hoursPerWeek), goal, week, weekCount, minLessons, maxLessons, covered),
-              },
-            ],
-            max_tokens: 8000,
-            temperature: 0.7,
-            response_format: { type: "json_object" },
-          })
-        )
-      )
-    );
+    const weekCompletions = [];
+    for (const week of weekNums) {
+      const completion = await withRetry(() =>
+        groq.chat.completions.create({
+          model: PATH_MODEL,
+          messages: [
+            {
+              role: "user",
+              content: buildWeekPrompt(skill, level, Number(hoursPerWeek), goal, week, weekCount, minLessons, maxLessons, covered),
+            },
+          ],
+          max_tokens: 8000,
+          temperature: 0.7,
+          response_format: { type: "json_object" },
+        })
+      );
+      weekCompletions.push(completion);
+    }
 
     const weeks = weekCompletions.map((c, i) =>
       parseWeekResponse(c.choices[0]?.message?.content ?? "", i + 1)
