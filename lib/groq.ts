@@ -52,9 +52,13 @@ export function buildWeekPrompt(
   totalWeeks: number,
   minLessons: number,
   maxLessons: number,
+  coveredTopics: string[] = [],
 ): string {
   const themes = pickThemes(totalWeeks);
   const theme = themes[weekNumber - 1];
+  const exclusionBlock = coveredTopics.length > 0
+    ? `\nALREADY COVERED — DO NOT REPEAT OR OVERLAP THESE TOPICS:\n${coveredTopics.map((t) => `- ${t}`).join("\n")}\nEvery lesson in this path MUST be meaningfully distinct from the above. Build forward, not sideways.\n`
+    : "";
   return `
 You are a world-class instructional designer. Generate Week ${weekNumber} of ${totalWeeks} for a micro-learning curriculum.
 
@@ -62,7 +66,7 @@ Skill: ${skill}
 Level: ${level}
 Hours per week: ${hoursPerWeek}
 Goal: ${goal || "General mastery"}
-Week ${weekNumber} focus: ${theme}
+Week ${weekNumber} focus: ${theme}${exclusionBlock}
 
 LESSON RULES (non-negotiable):
 - Generate between ${minLessons} and ${maxLessons} lessons — choose the count that best fits the theme's natural scope. Do not pad to hit a number.

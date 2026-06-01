@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Check, Lock, Clock, CaretLeft, CaretDown,
@@ -98,7 +99,13 @@ export function Dashboard({ data }: { data: DashboardData }) {
       {/* Next up / completion hero */}
       <motion.div variants={item} className="mt-8">
         {data.allDone || !nextLesson ? (
-          <AllDoneBlock skill={data.path.skill} completed={data.totalCompleted} />
+          <AllDoneBlock
+            skill={data.path.skill}
+            level={data.path.level}
+            goal={data.path.goal}
+            completed={data.totalCompleted}
+            coveredTopics={data.lessons.map((l) => l.headline)}
+          />
         ) : (
           <NextUpBlock lesson={nextLesson} completedToday={data.completedToday} bonusActive={data.bonusXpActive} />
         )}
@@ -174,18 +181,83 @@ function NextUpBlock({ lesson, completedToday, bonusActive }: { lesson: LessonSu
   );
 }
 
-function AllDoneBlock({ skill, completed }: { skill: string; completed: number }) {
+function AllDoneBlock({ skill, level, goal, completed, coveredTopics }: {
+  skill: string; level: string; goal: string | null; completed: number; coveredTopics: string[];
+}) {
+  const router = useRouter();
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+
+  const nextLevel = level === "beginner" ? "intermediate" : "advanced";
+  const alreadyAdvanced = level === "advanced";
+
+  async function goDeeper() {
+    setState("loading");
+    try {
+      const res = await fetch("/api/paths/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skill,
+          level: alreadyAdvanced ? "advanced" : nextLevel,
+          hoursPerWeek: 4,
+          goal: alreadyAdvanced
+            ? `Master the most advanced aspects of ${skill} — edge cases, expert nuance, real-world depth.`
+            : `Go deeper into ${skill} — build on my completed ${level} foundation.`,
+          coveredTopics,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setState("error"); return; }
+      router.push(`/dashboard/${data.pathId}`);
+      router.refresh();
+    } catch {
+      setState("error");
+    }
+  }
+
   return (
     <div className="relative rounded-2xl border-2 border-line bg-teal-tint p-7 sm:p-8 overflow-hidden shadow-hard">
       <div className="h-2.5 bg-teal border-b-2 border-line absolute top-0 inset-x-0" />
-      <div className="flex items-center gap-5">
-        <Mascot state="celebrate" size={160} className="shrink-0" />
-        <div>
+      <div>
           <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">Path complete</h3>
           <p className="mt-2 text-sm text-ink-soft max-w-[42ch] leading-relaxed">
             You finished all {completed} lessons of {toTitleCase(skill)}. The whole curriculum, cleared.
           </p>
-        </div>
+
+          <div className="mt-5 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={goDeeper}
+              disabled={state === "loading"}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-line bg-cream
+                px-5 py-3 text-sm font-bold text-ink shadow-hard press
+                disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {state === "loading" ? (
+                <>
+                  <span className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <motion.span
+                        key={i}
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.12 }}
+                        className="block w-1.5 h-1.5 rounded-full bg-clay"
+                      />
+                    ))}
+                  </span>
+                  Building next path…
+                </>
+              ) : (
+                <>
+                  {alreadyAdvanced ? "Go even deeper" : `Continue to ${toTitleCase(nextLevel)}`}
+                  <ArrowRight size={15} weight="bold" />
+                </>
+              )}
+            </button>
+          </div>
+
+          {state === "error" && (
+            <p className="mt-3 text-xs font-semibold text-berry">Something went wrong — try again.</p>
+          )}
       </div>
     </div>
   );
