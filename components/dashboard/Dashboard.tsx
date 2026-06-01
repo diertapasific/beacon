@@ -14,6 +14,7 @@ import { toTitleCase } from "@/lib/format";
 import { lessonTypeLabel } from "../ui/LessonTypeBadge";
 import { Icon } from "../ui/Icon";
 import { ACHIEVEMENTS } from "@/lib/achievements";
+import { OnboardingTour } from "../onboarding/OnboardingTour";
 
 const NODE_ICON: Record<string, React.ElementType> = {
   concept_card:    BookOpen,
@@ -30,7 +31,7 @@ const item = {
   show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 110, damping: 20 } },
 };
 
-export function Dashboard({ data }: { data: DashboardData }) {
+export function Dashboard({ data, showTour = false }: { data: DashboardData; showTour?: boolean }) {
   const hello = useGreeting();
   const firstName = data.name?.split(" ")[0];
   const phases = groupByPhase(data.lessons);
@@ -72,7 +73,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
       </motion.div>
 
       {/* Next up / completion hero */}
-      <motion.div variants={item} className="mt-8">
+      <motion.div variants={item} className="mt-8" data-tour="next-lesson">
         {data.allDone || !nextLesson ? (
           <AllDoneBlock
             skill={data.path.skill}
@@ -87,7 +88,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
       </motion.div>
 
       {/* The path */}
-      <motion.section variants={item} className="mt-12">
+      <motion.section variants={item} className="mt-12" data-tour="path">
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft">/ Your path</h2>
           <span className="font-mono text-[11px] font-bold text-ink-faint tabular-nums">{pct}% complete</span>
@@ -96,10 +97,12 @@ export function Dashboard({ data }: { data: DashboardData }) {
       </motion.section>
 
       {/* Achievements */}
-      <motion.section variants={item} className="mt-12">
+      <motion.section variants={item} className="mt-12" data-tour="badges">
         <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft mb-4">/ Badges</h2>
         <AchievementShelf earned={data.achievements} />
       </motion.section>
+
+      {showTour && <OnboardingTour />}
     </motion.main>
   );
 }

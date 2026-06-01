@@ -51,7 +51,7 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
 
         <div className="flex flex-col items-center gap-4">
           <RailStat label={`${streak} day streak`}>
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-1" data-tour="streak">
               <Flame size={18} weight="fill" className={streak > 0 ? "text-streak" : "text-ink-faint"} />
               <span className="font-mono text-[11px] font-bold tabular-nums text-ink-soft">{streak}</span>
             </div>
@@ -88,7 +88,7 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
           )}
         </Link>
         <div className="flex items-center gap-3 shrink-0">
-          <span className="inline-flex items-center gap-1 text-sm text-ink-soft">
+          <span className="inline-flex items-center gap-1 text-sm text-ink-soft" data-tour="streak">
             <Flame size={16} weight="fill" className={streak > 0 ? "text-streak" : "text-ink-faint"} />
             <span className="font-mono font-bold tabular-nums text-xs">{streak}</span>
           </span>

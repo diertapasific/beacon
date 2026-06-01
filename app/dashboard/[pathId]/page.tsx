@@ -27,7 +27,7 @@ export default async function PathDashboardPage({
       pathId={pathId}
       nextLessonId={data.nextLessonId}
     >
-      <Dashboard data={data} />
+      <Dashboard data={data} showTour={!user.hasOnboarded} />
     </AppShell>
   );
 }

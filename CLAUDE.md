@@ -28,6 +28,9 @@ React 19, Prisma 6 + Postgres, Groq for generation, Tailwind v4, Framer Motion.
   anything that could drop data before running it.
 - Prefer `onDelete: SetNull` over `Cascade` for records worth keeping after a
   user is deleted (e.g. `Feedback`).
+- **Restart `next dev` after any schema change.** A running dev server caches
+  the generated Prisma client in memory, so a new field reads back as
+  `undefined` and writes to it are silently rejected until you restart.
 
 ## Conventions
 

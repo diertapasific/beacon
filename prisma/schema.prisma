@@ -16,10 +16,11 @@ model User {
   email     String   @unique
   password  String
   name      String?
-  totalXp   Int      @default(0)
-  level     Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  totalXp      Int      @default(0)
+  level        Int      @default(1)
+  hasOnboarded Boolean  @default(false) // first-time dashboard tour seen/dismissed
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   paths        LearningPath[]
   progress     UserProgress[]
