@@ -10,6 +10,7 @@ import {
 import { lessonTypeLabel } from "../ui/LessonTypeBadge";
 import { AchievementModal, type UnlockedAchievement } from "../ui/AchievementModal";
 import { Mascot } from "../ui/Mascot";
+import { LessonChat } from "./LessonChat";
 import { toTitleCase } from "@/lib/format";
 
 interface QuizQuestion {
@@ -286,6 +287,18 @@ export function LessonExperience({
             />
           )}
       </AnimatePresence>
+
+      {phase !== "result" && (
+        <LessonChat
+          lessonContext={{
+            headline: lesson.headline,
+            type: lesson.type,
+            coreIdea: lesson.coreIdea,
+            example: lesson.example,
+            realWorldUse: lesson.realWorldUse,
+          }}
+        />
+      )}
     </div>
   );
 }
