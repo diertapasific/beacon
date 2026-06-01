@@ -317,7 +317,7 @@ function GeneratingScreen({ skill }: { skill: string }) {
             animate={{ y: [0, -14, 0] }}
             transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
           >
-            <Mascot state="thinking" size={200} />
+            <Mascot state="thinking" size={200} priority />
           </motion.div>
           <motion.div
             animate={{ scaleX: [1, 0.78, 1], opacity: [0.25, 0.1, 0.25] }}

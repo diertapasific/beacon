@@ -25,10 +25,12 @@ export function Mascot({
   state = "idle",
   size = 120,
   className = "",
+  priority = false,
 }: {
   state?: GlowState;
   size?: number;
   className?: string;
+  priority?: boolean;
 }) {
   return (
     <Image
@@ -38,6 +40,8 @@ export function Mascot({
       width={size}
       height={size}
       unoptimized
+      loading={priority ? "eager" : "lazy"}
+      priority={priority}
       className={className}
     />
   );

@@ -64,6 +64,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
             state={data.streak.current > 0 ? "streak" : "idle"}
             size={160}
             className="shrink-0 hidden sm:block"
+            priority
           />
         </div>
       </motion.div>
