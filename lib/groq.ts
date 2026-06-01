@@ -2,7 +2,17 @@ import Groq from "groq-sdk";
 
 export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-export const PATH_MODEL = "llama-3.3-70b-versatile";
+// Models are swappable via env so you can trade quality for a larger free
+// daily token budget without a redeploy.
+//
+// PATH_MODEL — path/lesson generation. Token-heavy, benefits from a strong
+// (or reasoning) model. Defaults to the high-quality 70B.
+export const PATH_MODEL = process.env.GROQ_PATH_MODEL || "llama-3.3-70b-versatile";
+
+// CHAT_MODEL — the tutor chat and skill suggestion. Short outputs + streaming,
+// so a fast NON-reasoning model is the right fit (reasoning models can blow the
+// tiny token caps these use). Lives on its own daily token bucket too.
+export const CHAT_MODEL = process.env.GROQ_CHAT_MODEL || "llama-3.1-8b-instant";
 
 const PHASE_THEMES = [
   "Foundations — core mental models, key terminology, why this skill matters",

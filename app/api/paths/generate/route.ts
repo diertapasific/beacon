@@ -13,21 +13,51 @@ function coerceType(type: string): LessonType {
   return VALID_TYPES.has(type) ? (type as LessonType) : LessonType.concept_card;
 }
 
+interface RateLimit {
+  limited: boolean; // server rejected us for a limit (429) or oversized request (413)
+  retryAfterSec: number;
+  daily: boolean; // hit the per-day token cap (TPD) rather than a per-minute burst
+  tooLarge: boolean; // request bigger than the model's per-minute window (413 / TPM)
+  shouldRetry: boolean;
+}
+
+/** Best-effort extraction of rate-limit details from a Groq SDK error. */
+function readRateLimit(err: unknown): RateLimit {
+  const e = err as {
+    status?: number;
+    headers?: Headers | Record<string, string>;
+    error?: { error?: { message?: string } };
+    message?: string;
+  };
+  const h = e?.headers;
+  const get = (k: string): string | null => {
+    if (!h) return null;
+    if (typeof (h as Headers).get === "function") return (h as Headers).get(k);
+    return (h as Record<string, string>)[k] ?? null;
+  };
+  const status = e?.status ?? 0;
+  const msg = e?.error?.error?.message ?? e?.message ?? "";
+  return {
+    limited: status === 429 || status === 413,
+    retryAfterSec: Number(get("retry-after")) || 0,
+    shouldRetry: get("x-should-retry") !== "false",
+    daily: /per day|\bTPD\b/i.test(msg),
+    tooLarge: status === 413 || /request too large|tokens per minute|\bTPM\b/i.test(msg),
+  };
+}
+
 async function withRetry<T>(fn: () => Promise<T>, retries = 4, baseDelayMs = 1500): Promise<T> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fn();
     } catch (err: unknown) {
-      const status = (err as { status?: number }).status;
-      if (status === 429 && attempt < retries) {
-        // Parse "try again in Xms" from the error message if available
-        const msg = (err as { error?: { message?: string } }).error?.message ?? "";
-        const match = msg.match(/try again in (\d+(?:\.\d+)?)(m?s)/i);
-        let wait = baseDelayMs * Math.pow(2, attempt);
-        if (match) {
-          const val = parseFloat(match[1]);
-          wait = Math.max(wait, match[2] === "s" ? val * 1000 : val) + 200;
-        }
+      const { limited, retryAfterSec, daily, tooLarge, shouldRetry } = readRateLimit(err);
+      // Only retry short, transient per-minute bursts. Daily caps and
+      // request-too-large errors can't be fixed by waiting a few seconds, and
+      // retrying would just burn the function's time budget (maxDuration).
+      const transient = limited && shouldRetry && !daily && !tooLarge && retryAfterSec <= 30;
+      if (transient && attempt < retries) {
+        const wait = Math.max(baseDelayMs * 2 ** attempt, retryAfterSec * 1000) + 200;
         await new Promise((res) => setTimeout(res, wait));
         continue;
       }
@@ -113,6 +143,31 @@ export async function POST(req: Request) {
 
     return Response.json({ pathId: path.id });
   } catch (err) {
+    const { limited, retryAfterSec, daily, tooLarge } = readRateLimit(err);
+    if (tooLarge) {
+      // The model's per-minute token window is smaller than our request
+      // (e.g. gpt-oss-20b free tier, TPM 8000). Retrying can't help — this is a
+      // model-choice issue, surfaced loudly for the operator.
+      console.error(
+        `[generate] 413 request too large for model "${PATH_MODEL}". Its per-minute ` +
+          `token limit is below the request size. Use a higher-TPM model ` +
+          `(e.g. llama-3.3-70b-versatile) via GROQ_PATH_MODEL, or upgrade the Groq tier.`,
+      );
+      return Response.json(
+        { error: "The AI model is over capacity right now. Please try again in a few minutes.", code: "too_large" },
+        { status: 503 },
+      );
+    }
+    if (limited) {
+      const mins = retryAfterSec ? Math.max(1, Math.ceil(retryAfterSec / 60)) : null;
+      const message = daily
+        ? `Beacon's daily AI limit has been reached${mins ? ` — try again in about ${mins} min` : ""}. Sorry about that.`
+        : `Too many requests right now${mins ? ` — try again in about ${mins} min` : ", give it a moment"}.`;
+      return Response.json(
+        { error: message, code: "rate_limited", retryAfter: retryAfterSec || null },
+        { status: 429, ...(retryAfterSec ? { headers: { "Retry-After": String(retryAfterSec) } } : {}) },
+      );
+    }
     console.error("Groq path generation failed:", err);
     return Response.json({ error: "Generation failed, please try again" }, { status: 500 });
   }

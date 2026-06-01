@@ -1,4 +1,4 @@
-import { groq, PATH_MODEL } from "@/lib/groq";
+import { groq, CHAT_MODEL } from "@/lib/groq";
 import { getUser } from "@/lib/auth";
 
 interface LessonContext {
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   }
 
   const stream = await groq.chat.completions.create({
-    model: PATH_MODEL,
+    model: CHAT_MODEL,
     messages: [
       { role: "system", content: buildSystemPrompt(lessonContext) },
       ...messages.slice(-12),

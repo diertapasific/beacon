@@ -1,4 +1,4 @@
-import { groq, PATH_MODEL } from "@/lib/groq";
+import { groq, CHAT_MODEL } from "@/lib/groq";
 import { getUser } from "@/lib/auth";
 
 // Rotating domain angles so repeated clicks don't all return tech topics.
@@ -21,7 +21,7 @@ export async function POST() {
 
   try {
     const completion = await groq.chat.completions.create({
-      model: PATH_MODEL,
+      model: CHAT_MODEL,
       messages: [
         {
           role: "system",
@@ -33,7 +33,9 @@ export async function POST() {
           content: `Suggest ${angle} that feels fresh and worth learning right now. Be specific and a little unexpected — never a generic textbook subject.`,
         },
       ],
-      max_tokens: 20,
+      // Headroom so a reasoning model (if configured) can think and still
+      // emit the name; we only keep the first line anyway.
+      max_tokens: 256,
       temperature: 1,
     });
 

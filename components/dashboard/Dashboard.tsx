@@ -150,6 +150,7 @@ function AllDoneBlock({ skill, level, goal, completed, coveredTopics }: {
 }) {
   const router = useRouter();
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const [errMsg, setErrMsg] = useState("Something went wrong — try again.");
 
   const nextLevel = level === "beginner" ? "intermediate" : "advanced";
   const alreadyAdvanced = level === "advanced";
@@ -171,7 +172,11 @@ function AllDoneBlock({ skill, level, goal, completed, coveredTopics }: {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setState("error"); return; }
+      if (!res.ok) {
+        setErrMsg(data.error ?? "Something went wrong — try again.");
+        setState("error");
+        return;
+      }
       router.push(`/dashboard/${data.pathId}`);
       router.refresh();
     } catch {
@@ -220,7 +225,7 @@ function AllDoneBlock({ skill, level, goal, completed, coveredTopics }: {
           </div>
 
           {state === "error" && (
-            <p className="mt-3 text-xs font-semibold text-berry">Something went wrong — try again.</p>
+            <p className="mt-3 text-xs font-semibold text-berry">{errMsg}</p>
           )}
       </div>
     </div>
