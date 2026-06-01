@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Lighthouse, SquaresFour, BookOpen, Flame, SignOut, UserCircle } from "@phosphor-icons/react";
+import { Lighthouse, SquaresFour, BookOpen, Flame, SignOut, UserCircle, ChartBar } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 interface AppShellProps {
@@ -12,9 +12,10 @@ interface AppShellProps {
   pathName?: string;
   pathId?: string;
   nextLessonId?: string | null;
+  isAdmin?: boolean;
 }
 
-export function AppShell({ children, streak, level, pathName, pathId, nextLessonId }: AppShellProps) {
+export function AppShell({ children, streak, level, pathName, pathId, nextLessonId, isAdmin = false }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -29,6 +30,7 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
   const onPaths = pathname === "/dashboard";
   const onLearn = pathname.startsWith("/lesson") || pathname.startsWith("/dashboard/");
   const onProfile = pathname === "/profile";
+  const onAdmin = pathname === "/admin";
 
   return (
     <div className="bg-paper min-h-[100dvh]">
@@ -59,6 +61,7 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
               {level}
             </div>
           </RailStat>
+          {isAdmin && <RailLink href="/admin" label="Admin" active={onAdmin} icon={ChartBar} />}
           <RailLink href="/profile" label="Profile" active={onProfile} icon={UserCircle} />
           <RailStat label="Sign out">
             <button
@@ -99,9 +102,10 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
       <div className="md:pl-[68px] pb-24 md:pb-0">{children}</div>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-3 border-t-2 border-line bg-cream">
+      <nav className={`md:hidden fixed bottom-0 inset-x-0 z-30 grid ${isAdmin ? "grid-cols-4" : "grid-cols-3"} border-t-2 border-line bg-cream`}>
         <BottomTab href="/dashboard" label="Paths" active={onPaths} icon={SquaresFour} />
         <BottomTab href={learnHref} label="Learn" active={onLearn} icon={BookOpen} />
+        {isAdmin && <BottomTab href="/admin" label="Admin" active={onAdmin} icon={ChartBar} />}
         <BottomTab href="/profile" label="Profile" active={onProfile} icon={UserCircle} />
       </nav>
     </div>
