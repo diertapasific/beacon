@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Lighthouse, SquaresFour, BookOpen, Flame, SignOut } from "@phosphor-icons/react";
+import { Lighthouse, SquaresFour, BookOpen, Flame, SignOut, UserCircle } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 interface AppShellProps {
@@ -28,6 +28,7 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
   const learnHref = nextLessonId ? `/lesson/${nextLessonId}` : pathDashHref;
   const onPaths = pathname === "/dashboard";
   const onLearn = pathname.startsWith("/lesson") || pathname.startsWith("/dashboard/");
+  const onProfile = pathname === "/profile";
 
   return (
     <div className="bg-paper min-h-[100dvh]">
@@ -58,6 +59,7 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
               {level}
             </div>
           </RailStat>
+          <RailLink href="/profile" label="Profile" active={onProfile} icon={UserCircle} />
           <RailStat label="Sign out">
             <button
               onClick={logout}
@@ -97,9 +99,10 @@ export function AppShell({ children, streak, level, pathName, pathId, nextLesson
       <div className="md:pl-[68px] pb-24 md:pb-0">{children}</div>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-2 border-t-2 border-line bg-cream">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-3 border-t-2 border-line bg-cream">
         <BottomTab href="/dashboard" label="Paths" active={onPaths} icon={SquaresFour} />
         <BottomTab href={learnHref} label="Learn" active={onLearn} icon={BookOpen} />
+        <BottomTab href="/profile" label="Profile" active={onProfile} icon={UserCircle} />
       </nav>
     </div>
   );

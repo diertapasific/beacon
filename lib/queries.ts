@@ -35,6 +35,15 @@ export interface DashboardData {
   achievements: { type: string; label: string; icon: string; desc: string; unlockedAt: string }[];
 }
 
+export interface ProfileData {
+  name: string | null;
+  email: string;
+  memberSince: string;
+  xp: { total: number; level: number; progressPct: number; toNext: number };
+  streak: { current: number; longest: number };
+  totals: { paths: number; lessonsCompleted: number; achievements: number };
+}
+
 export interface PathSummary {
   id: string;
   skill: string;
@@ -131,6 +140,33 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
       };
       return { type: a.type, ...meta, unlockedAt: a.unlockedAt.toISOString() };
     }),
+  };
+}
+
+/** Account-level stats for the profile page. */
+export async function getProfileData(userId: string): Promise<ProfileData | null> {
+  const [user, streak, paths, lessonsCompleted, achievements] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId } }),
+    getStreak(userId),
+    prisma.learningPath.count({ where: { userId } }),
+    prisma.userProgress.count({ where: { userId, completed: true } }),
+    prisma.achievement.count({ where: { userId } }),
+  ]);
+
+  if (!user) return null;
+
+  return {
+    name: user.name,
+    email: user.email,
+    memberSince: user.createdAt.toISOString(),
+    xp: {
+      total: user.totalXp,
+      level: getLevelFromXP(user.totalXp),
+      progressPct: getProgressToNextLevel(user.totalXp),
+      toNext: getXpToNextLevel(user.totalXp),
+    },
+    streak: { current: streak?.current ?? 0, longest: streak?.longest ?? 0 },
+    totals: { paths, lessonsCompleted, achievements },
   };
 }
 

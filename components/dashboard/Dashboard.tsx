@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Check, Lock, Clock, CaretLeft, CaretDown,
-  BookOpen, Lightbulb, Code, Scales, Sparkle, Repeat, Flame,
+  BookOpen, Lightbulb, Code, Scales, Sparkle, Repeat,
 } from "@phosphor-icons/react";
 import type { DashboardData, LessonSummary } from "@/lib/queries";
 import { Mascot } from "../ui/Mascot";
@@ -71,32 +71,6 @@ export function Dashboard({ data }: { data: DashboardData }) {
         </div>
       </motion.div>
 
-      {/* Stat strip — uniform cells, accent carried only by the streak flame */}
-      <motion.div variants={item} className="mt-8 rounded-xl border-2 border-line overflow-hidden shadow-hard">
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x-2 divide-y-2 sm:divide-y-0 divide-line">
-          <Metric label="Streak" value={`${data.streak.current}`} unit="days" tint="bg-cream"
-            icon={<Flame size={13} weight="fill" className={data.streak.current > 0 ? "text-streak" : "text-ink-faint"} />} />
-          <Metric label="Level" value={`${data.xp.level}`} tint="bg-cream" />
-          <Metric label="Total XP" value={data.xp.total.toLocaleString()} tint="bg-cream" />
-          <Metric label="Progress" value={`${data.totalCompleted}/${data.totalLessons}`} tint="bg-cream" />
-        </div>
-      </motion.div>
-
-      {/* XP progress line */}
-      <motion.div variants={item} className="mt-4 flex items-center gap-3">
-        <div className="h-3 flex-1 rounded-full bg-cream border-2 border-line overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${data.xp.progressPct}%` }}
-            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-            className="h-full bg-clay"
-          />
-        </div>
-        <span className="font-mono text-[11px] font-bold text-ink-soft tabular-nums shrink-0">
-          {data.xp.toNext > 0 ? `${data.xp.toNext.toLocaleString()} XP → L${data.xp.level + 1}` : "Max level"}
-        </span>
-      </motion.div>
-
       {/* Next up / completion hero */}
       <motion.div variants={item} className="mt-8">
         {data.allDone || !nextLesson ? (
@@ -127,20 +101,6 @@ export function Dashboard({ data }: { data: DashboardData }) {
         <AchievementShelf earned={data.achievements} />
       </motion.section>
     </motion.main>
-  );
-}
-
-function Metric({ label, value, unit, icon, tint }: { label: string; value: string; unit?: string; icon?: React.ReactNode; tint: string }) {
-  return (
-    <div className={`px-4 py-4 ${tint}`}>
-      <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wide text-ink-soft">
-        {icon}{label}
-      </p>
-      <p className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-ink leading-none">
-        {value}
-        {unit && <span className="ml-1 text-xs font-medium text-ink-soft">{unit}</span>}
-      </p>
-    </div>
   );
 }
 
