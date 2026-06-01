@@ -540,10 +540,15 @@ function MatchingCard({
     : (() => {
         const r: Record<number, number> = {};
         String(question.correct ?? "").split(",").forEach((p) => {
-          const [t, d] = p.split(":").map((s) => s.trim());
-          const ti = terms.findIndex((x) => norm(x) === norm(t));
-          const di = defs.findIndex((x) => norm(x) === norm(d));
-          if (ti !== -1 && di !== -1) r[ti] = di;
+          const parts = p.split(":");
+          // Try every colon as the term:def separator to handle terms that contain colons
+          for (let i = 1; i < parts.length; i++) {
+            const t = parts.slice(0, i).map((s) => s.trim()).join(": ");
+            const d = parts.slice(i).map((s) => s.trim()).join(": ");
+            const ti = terms.findIndex((x) => norm(x) === norm(t));
+            const di = defs.findIndex((x) => norm(x) === norm(d));
+            if (ti !== -1 && di !== -1) { r[ti] = di; break; }
+          }
         });
         return r;
       })();
@@ -577,7 +582,8 @@ function MatchingCard({
     commit(next);
   }
 
-  const allCorrect = submitted &&
+  const dataIssue = Object.keys(correctPairs).length < terms.length;
+  const allCorrect = submitted && !dataIssue &&
     Object.entries(pairs).every(([ti, di]) => correctPairs[Number(ti)] === Number(di));
 
   return (
@@ -644,8 +650,8 @@ function MatchingCard({
             {terms.map((term, ti) => {
               const isActive = activeTerm === ti;
               const isPaired = pairs[ti] !== undefined;
-              const isCorr  = submitted && isPaired && correctPairs[ti] === pairs[ti];
-              const isWrong = submitted && isPaired && !isCorr;
+              const isCorr  = submitted && isPaired && !dataIssue && correctPairs[ti] === pairs[ti];
+              const isWrong = submitted && isPaired && !dataIssue && !isCorr;
               return (
                 <button
                   ref={(el) => { termRefs.current[ti] = el; }}
@@ -674,8 +680,8 @@ function MatchingCard({
               const owner = Object.entries(pairs).find(([, v]) => Number(v) === di);
               const isPaired = !!owner;
               const ti = isPaired ? Number(owner![0]) : -1;
-              const isCorr  = submitted && isPaired && correctPairs[ti] === di;
-              const isWrong = submitted && isPaired && !isCorr;
+              const isCorr  = submitted && isPaired && !dataIssue && correctPairs[ti] === di;
+              const isWrong = submitted && isPaired && !dataIssue && !isCorr;
               const isTarget = activeTerm !== null;
               return (
                 <button
@@ -714,10 +720,17 @@ function MatchingCard({
       <AnimatePresence>
         {selected && submitted && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
+            {dataIssue ? (
+              <p className="mt-3 text-sm leading-relaxed text-ink-faint">
+                <span className="font-bold">Grading unavailable. </span>
+                This question has a data formatting issue and cannot be scored.
+              </p>
+            ) : (
             <p className={`mt-3 text-sm leading-relaxed ${allCorrect ? "text-teal-deep" : "text-ink-soft"}`}>
               <span className="font-bold">{allCorrect ? "Correct. " : "Not quite. "}</span>
               {question.explanation}
             </p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

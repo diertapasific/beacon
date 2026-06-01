@@ -127,7 +127,19 @@ Quiz type: multiple_choice | true_false | matching | sequence | spot_the_bug
 Quiz format (STRICT):
 - multiple_choice: options = 4 strings. correct = full text of one option, copied exactly.
 - true_false: options = ["True","False"]. correct = "True" or "False".
-- matching: options = [term1,term2,term3,def1,def2,def3] — first 3 are SHORT terms (1-4 words each), last 3 are DESCRIPTIVE phrases (6+ words each explaining what the term means or does). correct = "term1:def1,term2:def2,term3:def3". The question must be a plain instruction like "Match each term with its correct description" — do NOT list the terms inside the question text, and do NOT use a bare noun or single word as a definition.
+- matching: ALWAYS exactly 3 pairs. options = [term1,term2,term3,def1,def2,def3].
+    Terms (first 3): 1-4 words, NO colons, NO punctuation inside the string.
+    Definitions (last 3): 8-14 words each, must unambiguously describe exactly one term.
+    correct = "term1:def1,term2:def2,term3:def3" — strings COPIED VERBATIM from options, colons ONLY as the term:def separator, NO other colons anywhere.
+    Question text: a plain instruction ONLY — never list the terms in the question.
+    EXAMPLE:
+      options: ["Gradient Descent","Learning Rate","Loss Function","Iteratively adjusts weights to minimise the prediction error","Scales how large each weight update step is","Measures the gap between predicted and actual output values"]
+      correct: "Gradient Descent:Iteratively adjusts weights to minimise the prediction error,Learning Rate:Scales how large each weight update step is,Loss Function:Measures the gap between predicted and actual output values"
+    ILLEGAL — never do these:
+      - Putting descriptions inside the correct field that don't exactly match an option string
+      - Terms or definitions that contain colons
+      - Fewer or more than 3 pairs
+      - Listing terms inside the question text
 - sequence: options = 4-5 SHORT individual steps in SCRAMBLED order (each is one brief action, NOT a full sentence with commas). correct = those exact strings joined by | in correct order.
 - spot_the_bug: question = short code with one bug. options = 4 bug descriptions. correct = full text of correct option.
 `;

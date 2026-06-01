@@ -71,20 +71,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       // Build correct pairs the same way MatchingCard does
       const correctPairs: Record<string, string> = isOldFormat
         ? Object.fromEntries(terms.map((t: string, i: number) => [norm(t), norm(defs[i] ?? "")]))
-        : Object.fromEntries(
-            correctStr.split(",").filter(Boolean).map((p) => {
-              const [t, d] = p.split(":").map((s) => s.trim());
-              return [norm(t ?? ""), norm(d ?? "")];
-            })
-          );
+        : (() => {
+            const r: Record<string, string> = {};
+            correctStr.split(",").filter(Boolean).forEach((p) => {
+              const parts = p.split(":");
+              for (let i = 1; i < parts.length; i++) {
+                const t = parts.slice(0, i).map((s) => s.trim()).join(": ");
+                const d = parts.slice(i).map((s) => s.trim()).join(": ");
+                if (t && d) { r[norm(t)] = norm(d); break; }
+              }
+            });
+            return r;
+          })();
 
       // User answer: "term:def,term:def,..."
-      const userPairs = Object.fromEntries(
-        answer.split(",").filter(Boolean).map((p) => {
-          const [t, d] = p.split(":").map((s) => s.trim());
-          return [norm(t ?? ""), norm(d ?? "")];
-        })
-      );
+      const userPairs: Record<string, string> = {};
+      answer.split(",").filter(Boolean).forEach((p) => {
+        const parts = p.split(":");
+        for (let i = 1; i < parts.length; i++) {
+          const t = parts.slice(0, i).map((s) => s.trim()).join(": ");
+          const d = parts.slice(i).map((s) => s.trim()).join(": ");
+          if (t && d) { userPairs[norm(t)] = norm(d); break; }
+        }
+      });
 
       const isCorrect = Object.keys(correctPairs).length > 0 &&
         Object.keys(correctPairs).every((t) => userPairs[t] === correctPairs[t]);
