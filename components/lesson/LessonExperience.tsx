@@ -860,7 +860,7 @@ function PathCompleteView({
         transition={{ type: "spring", stiffness: 220, damping: 12, delay: 0.08 }}
         className="mx-auto mb-6"
       >
-        <Mascot state="celebrate" size={140} />
+        <Mascot state="celebrate" size={240} />
       </motion.div>
 
       <motion.p
@@ -938,7 +938,8 @@ function ResultView({
       >
         <Mascot
           state={result.passed ? (result.leveledUp ? "level_up" : "correct") : "wrong"}
-          size={130}
+          size={220}
+          className="mx-auto"
         />
       </motion.div>
 

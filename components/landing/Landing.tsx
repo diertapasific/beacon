@@ -127,7 +127,7 @@ function HeroPreview() {
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         className="absolute -top-2 left-1/2 -translate-x-1/2 z-10"
       >
-        <Mascot state="idle" size={112} />
+        <Mascot state="idle" size={200} />
       </motion.div>
       <div className="rounded-2xl border-2 border-line bg-cream p-5 sm:p-6 shadow-hard-lg">
         <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint">
@@ -483,7 +483,7 @@ function FooterCTA({ onStart }: { onStart: () => void }) {
 
         <div className="relative z-10">
           <div className="flex justify-center mb-4">
-            <Mascot state="idle" size={96} />
+            <Mascot state="idle" size={180} />
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none max-w-[20ch] mx-auto">
             Insert coin. Start in 30 seconds.

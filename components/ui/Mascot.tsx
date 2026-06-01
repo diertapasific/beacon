@@ -1,7 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import Lottie from "lottie-react";
+import Image from "next/image";
 
 export type GlowState =
   | "idle"
@@ -13,15 +10,15 @@ export type GlowState =
   | "level_up"
   | "sleeping";
 
-const ANIM: Record<GlowState, { file: string; loop: boolean }> = {
-  idle:      { file: "/mascot/glow_01_idle_breathe.json",    loop: true  },
-  celebrate: { file: "/mascot/glow_02_happy_celebrate.json", loop: false },
-  thinking:  { file: "/mascot/glow_03_thinking.json",        loop: true  },
-  correct:   { file: "/mascot/glow_04_correct.json",         loop: false },
-  wrong:     { file: "/mascot/glow_05_wrong.json",           loop: false },
-  streak:    { file: "/mascot/glow_06_streak_active.json",   loop: true  },
-  level_up:  { file: "/mascot/glow_07_level_up.json",        loop: false },
-  sleeping:  { file: "/mascot/glow_08_sleeping.json",        loop: true  },
+const GIF: Record<GlowState, string> = {
+  idle:      "/mascot/glow_01_idle_breathe.gif",
+  celebrate: "/mascot/glow_02_happy_celebrate.gif",
+  thinking:  "/mascot/glow_03_thinking.gif",
+  correct:   "/mascot/glow_04_correct.gif",
+  wrong:     "/mascot/glow_05_wrong.gif",
+  streak:    "/mascot/glow_06_streak_active.gif",
+  level_up:  "/mascot/glow_07_level_up.gif",
+  sleeping:  "/mascot/glow_08_sleeping.gif",
 };
 
 export function Mascot({
@@ -33,24 +30,14 @@ export function Mascot({
   size?: number;
   className?: string;
 }) {
-  const [data, setData] = useState<object | null>(null);
-  const { file, loop } = ANIM[state];
-
-  useEffect(() => {
-    fetch(file)
-      .then((r) => r.json())
-      .then(setData);
-  }, [file]);
-
-  if (!data) return <div style={{ width: size, height: size }} className={className} />;
-
   return (
-    <Lottie
+    <Image
       key={state}
-      animationData={data}
-      loop={loop}
-      autoplay
-      style={{ width: size, height: size }}
+      src={GIF[state]}
+      alt="Glow mascot"
+      width={size}
+      height={size}
+      unoptimized
       className={className}
     />
   );

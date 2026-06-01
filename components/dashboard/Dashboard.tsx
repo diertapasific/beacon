@@ -62,7 +62,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
           </div>
           <Mascot
             state={data.streak.current > 0 ? "streak" : "idle"}
-            size={88}
+            size={160}
             className="shrink-0 hidden sm:block"
           />
         </div>
@@ -178,7 +178,7 @@ function AllDoneBlock({ skill, completed }: { skill: string; completed: number }
     <div className="relative rounded-2xl border-2 border-line bg-teal-tint p-7 sm:p-8 overflow-hidden shadow-hard">
       <div className="h-2.5 bg-teal border-b-2 border-line absolute top-0 inset-x-0" />
       <div className="flex items-center gap-5">
-        <Mascot state="celebrate" size={80} className="shrink-0" />
+        <Mascot state="celebrate" size={160} className="shrink-0" />
         <div>
           <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">Path complete</h3>
           <p className="mt-2 text-sm text-ink-soft max-w-[42ch] leading-relaxed">
@@ -315,7 +315,7 @@ function AchievementShelf({ earned }: { earned: DashboardData["achievements"] })
   if (earned.length === 0) {
     return (
       <div className="flex items-center gap-4 rounded-xl border-2 border-dashed border-ink/40 bg-cream px-5 py-3">
-        <Mascot state="sleeping" size={64} className="shrink-0" />
+        <Mascot state="sleeping" size={128} className="shrink-0" />
         <p className="text-sm text-ink-soft">No badges yet. Clear your first lesson to light one up.</p>
       </div>
     );
