@@ -70,13 +70,13 @@ export function Dashboard({ data }: { data: DashboardData }) {
         </div>
       </motion.div>
 
-      {/* Stat strip — bordered cells, riso tints */}
+      {/* Stat strip — uniform cells, accent carried only by the streak flame */}
       <motion.div variants={item} className="mt-8 rounded-xl border-2 border-line overflow-hidden shadow-hard">
         <div className="grid grid-cols-2 sm:grid-cols-4 divide-x-2 divide-y-2 sm:divide-y-0 divide-line">
-          <Metric label="Streak" value={`${data.streak.current}`} unit="days" tint="bg-sun-tint"
+          <Metric label="Streak" value={`${data.streak.current}`} unit="days" tint="bg-cream"
             icon={<Flame size={13} weight="fill" className={data.streak.current > 0 ? "text-streak" : "text-ink-faint"} />} />
-          <Metric label="Level" value={`${data.xp.level}`} tint="bg-teal-tint" />
-          <Metric label="Total XP" value={data.xp.total.toLocaleString()} tint="bg-clay-tint" />
+          <Metric label="Level" value={`${data.xp.level}`} tint="bg-cream" />
+          <Metric label="Total XP" value={data.xp.total.toLocaleString()} tint="bg-cream" />
           <Metric label="Progress" value={`${data.totalCompleted}/${data.totalLessons}`} tint="bg-cream" />
         </div>
       </motion.div>
