@@ -139,7 +139,7 @@ Quiz format (STRICT):
     Terms (first 3): 1-4 words, NO colons, NO punctuation inside the string.
     Definitions (last 3): 8-14 words each, must unambiguously describe exactly one term.
     correct = "term1:def1,term2:def2,term3:def3" — strings COPIED VERBATIM from options, colons ONLY as the term:def separator, NO other colons anywhere.
-    Question text: a plain instruction ONLY — never list the terms in the question.
+    Question text: a short plain instruction ONLY — e.g. "Match each term to its definition." NEVER leave this field empty. NEVER list the terms inside the question text.
     EXAMPLE:
       options: ["Gradient Descent","Learning Rate","Loss Function","Iteratively adjusts weights to minimise the prediction error","Scales how large each weight update step is","Measures the gap between predicted and actual output values"]
       correct: "Gradient Descent:Iteratively adjusts weights to minimise the prediction error,Learning Rate:Scales how large each weight update step is,Loss Function:Measures the gap between predicted and actual output values"

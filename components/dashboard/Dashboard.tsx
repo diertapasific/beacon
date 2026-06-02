@@ -74,7 +74,7 @@ export function Dashboard({ data, showTour = false }: { data: DashboardData; sho
 
       {/* Next up / completion hero */}
       <motion.div variants={item} className="mt-8" data-tour="next-lesson">
-        {data.allDone || !nextLesson ? (
+        {data.allDone ? (
           <AllDoneBlock
             skill={data.path.skill}
             level={data.path.level}
@@ -82,9 +82,11 @@ export function Dashboard({ data, showTour = false }: { data: DashboardData; sho
             completed={data.totalCompleted}
             coveredTopics={data.lessons.map((l) => l.headline)}
           />
-        ) : (
+        ) : !nextLesson && data.nextPhaseNumber !== null ? (
+          <PendingPhaseBlock nextPhaseNumber={data.nextPhaseNumber} />
+        ) : nextLesson ? (
           <NextUpBlock lesson={nextLesson} completedToday={data.completedToday} bonusActive={data.bonusXpActive} />
-        )}
+        ) : null}
       </motion.div>
 
       {/* The path */}
@@ -93,7 +95,14 @@ export function Dashboard({ data, showTour = false }: { data: DashboardData; sho
           <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft">/ Your path</h2>
           <span className="font-mono text-[11px] font-bold text-ink-faint tabular-nums">{pct}% complete</span>
         </div>
-        <PathRoute phases={phases} nextLessonId={data.nextLessonId} phaseThemes={data.phaseThemes} />
+        <PathRoute
+          phases={phases}
+          nextLessonId={data.nextLessonId}
+          phaseThemes={data.phaseThemes}
+          totalPhases={data.totalPhases}
+          generatedPhases={data.generatedPhases}
+          pendingPhaseNumber={data.nextLessonId === null ? data.nextPhaseNumber : null}
+        />
       </motion.section>
 
       {/* Achievements */}
@@ -232,8 +241,33 @@ function AllDoneBlock({ skill, level, goal, completed, coveredTopics }: {
   );
 }
 
+function PendingPhaseBlock({ nextPhaseNumber }: { nextPhaseNumber: number }) {
+  return (
+    <div className="rounded-2xl border-2 border-line border-dashed bg-paper-2 p-7 sm:p-8 flex items-center gap-5">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+        className="shrink-0 w-8 h-8 rounded-full border-[3px] border-line border-t-clay"
+      />
+      <div>
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-clay-deep mb-1">
+          Phase {nextPhaseNumber} incoming
+        </p>
+        <p className="text-sm text-ink-soft">Your next phase is being generated. Refresh in a moment.</p>
+      </div>
+    </div>
+  );
+}
+
 // ── Path: sectioned list with collapsible phases ──────────────────────────────
-function PathRoute({ phases, nextLessonId, phaseThemes }: { phases: PhaseGroup[]; nextLessonId: string | null; phaseThemes: Record<number, string> }) {
+function PathRoute({ phases, nextLessonId, phaseThemes, totalPhases, generatedPhases, pendingPhaseNumber }: {
+  phases: PhaseGroup[];
+  nextLessonId: string | null;
+  phaseThemes: Record<number, string>;
+  totalPhases: number;
+  generatedPhases: number;
+  pendingPhaseNumber: number | null;
+}) {
   const activePhase = phases.find((p) => p.lessons.some((l) => l.id === nextLessonId))?.phaseNumber
     ?? phases.find((p) => p.lessons.some((l) => !l.completed))?.phaseNumber
     ?? phases[phases.length - 1]?.phaseNumber;
@@ -252,6 +286,21 @@ function PathRoute({ phases, nextLessonId, phaseThemes }: { phases: PhaseGroup[]
   return (
     <div className="rounded-xl border-2 border-line bg-cream overflow-hidden shadow-hard divide-y-2 divide-line">
       {phases.map((phase) => {
+        // A phase is accessible only when all lessons in the previous phase
+        // are complete — even if it has already been generated in the background.
+        const accessible = phase.phaseNumber <= (activePhase ?? 1);
+        if (!accessible) {
+          return (
+            <div key={phase.phaseNumber} className="flex items-center gap-3 px-4 sm:px-5 py-4 border-t-2 border-line opacity-40">
+              <Lock size={13} weight="bold" className="shrink-0 text-ink-faint" />
+              <span className="inline-flex items-center rounded-full border-2 border-line px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide bg-paper text-ink-faint shrink-0">
+                Phase {phase.phaseNumber}
+              </span>
+              <span className="text-sm font-bold text-ink-soft">Unlocks after Phase {phase.phaseNumber - 1}</span>
+            </div>
+          );
+        }
+
         const completed = phase.lessons.filter((l) => l.completed).length;
         const allDone = completed === phase.lessons.length;
         const isOpen = openPhases.has(phase.phaseNumber);
@@ -295,6 +344,31 @@ function PathRoute({ phases, nextLessonId, phaseThemes }: { phases: PhaseGroup[]
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+        );
+      })}
+      {Array.from({ length: totalPhases - generatedPhases }, (_, i) => {
+        const phaseNum = generatedPhases + i + 1;
+        // Skip if already rendered above as an inaccessible generated phase
+        if (phases.some((p) => p.phaseNumber === phaseNum)) return null;
+        const isGenerating = pendingPhaseNumber === phaseNum;
+        return (
+          <div key={phaseNum} className="flex items-center gap-3 px-4 sm:px-5 py-4 border-t-2 border-line opacity-40">
+            {isGenerating ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                className="shrink-0 w-5 h-5 rounded-full border-2 border-line border-t-clay"
+              />
+            ) : (
+              <Lock size={13} weight="bold" className="shrink-0 text-ink-faint" />
+            )}
+            <span className="inline-flex items-center rounded-full border-2 border-line px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide bg-paper text-ink-faint shrink-0">
+              Phase {phaseNum}
+            </span>
+            <span className="text-sm font-bold text-ink-soft">
+              {isGenerating ? "Generating…" : `Unlocks after Phase ${phaseNum - 1}`}
+            </span>
           </div>
         );
       })}

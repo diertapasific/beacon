@@ -93,12 +93,16 @@ export function LessonExperience({
   totalLessons,
   subsequentLessonId,
   pathId,
+  nextPhaseNumber = null,
+  isSecondToLastInPhase = false,
 }: {
   lesson: LessonContent;
   lessonNumber: number;
   totalLessons: number;
   subsequentLessonId: string | null;
   pathId: string;
+  nextPhaseNumber?: number | null;
+  isSecondToLastInPhase?: boolean;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<"lesson" | "quiz" | "result">("lesson");
@@ -108,6 +112,8 @@ export function LessonExperience({
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [achievementIndex, setAchievementIndex] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [generatingPhase, setGeneratingPhase] = useState(false);
+  const [phaseGenError, setPhaseGenError] = useState<string | null>(null);
 
   const progressPct = Math.round((lessonNumber / totalLessons) * 100);
   const allAnswered = answers.every((a) => a !== null && a !== "");
@@ -136,6 +142,15 @@ export function LessonExperience({
       if (!res.ok || data.error) { setSubmitError(data.error ?? `Server error ${res.status}`); return; }
       setResult(data);
       setGraded(true);
+      // Start generating the next phase in the background after the penultimate
+      // lesson passes — so it's ready by the time the user finishes the last one.
+      if (data.passed && isSecondToLastInPhase && nextPhaseNumber !== null) {
+        fetch(`/api/phases/${pathId}/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phaseNumber: nextPhaseNumber }),
+        }).catch(() => {});
+      }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -145,7 +160,8 @@ export function LessonExperience({
 
   function showResult() {
     setPhase("result");
-    const isPathComplete = !subsequentLessonId && result?.passed;
+    const isPhaseComplete = !subsequentLessonId && nextPhaseNumber !== null && result?.passed;
+    const isPathComplete = !subsequentLessonId && nextPhaseNumber === null && result?.passed;
     if (isPathComplete) {
       const burst = (opts: confetti.Options) => confetti({ colors: CONFETTI_COLORS, ...opts });
       setTimeout(() => burst({ particleCount: 120, spread: 100, origin: { y: 0.55 } }), 100);
@@ -156,6 +172,25 @@ export function LessonExperience({
       setTimeout(() => burst({ particleCount: 160, spread: 180, origin: { y: 0.45 } }), 850);
     } else if (result?.passed && result?.leveledUp) {
       setTimeout(() => confetti({ particleCount: 160, spread: 100, origin: { y: 0.5 }, colors: CONFETTI_COLORS }), 250);
+    }
+    if (isPhaseComplete) void generateNextPhase();
+  }
+
+  async function generateNextPhase() {
+    setGeneratingPhase(true);
+    setPhaseGenError(null);
+    try {
+      const res = await fetch(`/api/phases/${pathId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phaseNumber: nextPhaseNumber }),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
+      router.push(`/dashboard/${pathId}`);
+    } catch (err) {
+      setPhaseGenError(err instanceof Error ? err.message : "Generation failed. Try again.");
+      setGeneratingPhase(false);
     }
   }
 
@@ -256,7 +291,18 @@ export function LessonExperience({
           )}
 
           {phase === "result" && result && (
-            !subsequentLessonId && result.passed ? (
+            !subsequentLessonId && result.passed && nextPhaseNumber !== null ? (
+              <PhaseCompleteView
+                key="phase-complete"
+                result={result}
+                nextPhaseNumber={nextPhaseNumber}
+                generating={generatingPhase}
+                error={phaseGenError}
+                onRetry={() => void generateNextPhase()}
+                dashboardHref={`/dashboard/${pathId}`}
+                onContinue={(href) => { router.push(href); }}
+              />
+            ) : !subsequentLessonId && result.passed ? (
               <PathCompleteView
                 key="path-complete"
                 result={result}
@@ -591,7 +637,7 @@ function MatchingCard({
       <div className="flex items-start justify-between gap-3 mb-5">
         <p className="flex gap-2 text-base font-bold text-ink">
           <span className="font-mono text-clay-deep">{index + 1}.</span>
-          <span>{question.question}</span>
+          <span>{question.question || "Match each term to its correct definition."}</span>
         </p>
         {question.hint && !submitted && (
           <button
@@ -947,6 +993,91 @@ function SequenceCard({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function PhaseCompleteView({
+  result, nextPhaseNumber, generating, error, onRetry, dashboardHref, onContinue,
+}: {
+  result: SubmitResult;
+  nextPhaseNumber: number;
+  generating: boolean;
+  error: string | null;
+  onRetry: () => void;
+  dashboardHref: string;
+  onContinue: (href: string) => void;
+}) {
+  return (
+    <motion.div
+      key="phase-complete"
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 18 }}
+      className="text-center pt-4"
+    >
+      <motion.div
+        initial={{ scale: 0, rotate: -15 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 220, damping: 12, delay: 0.08 }}
+        className="mb-6"
+      >
+        <Mascot state="celebrate" size={200} className="mx-auto" />
+      </motion.div>
+
+      <motion.p
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+        className="font-mono text-[11px] font-bold uppercase tracking-[0.25em] text-clay-deep mb-3"
+      >
+        Phase {nextPhaseNumber - 1} complete
+      </motion.p>
+      <motion.h2
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        className="text-4xl sm:text-5xl font-extrabold tracking-tight text-ink leading-none"
+      >
+        Phase cleared.
+      </motion.h2>
+
+      <motion.div
+        initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.52, type: "spring", stiffness: 120, damping: 18 }}
+        className="mt-6 flex flex-wrap justify-center items-center gap-x-6 gap-y-3 rounded-xl border-2 border-line bg-cream px-6 py-4 shadow-hard"
+      >
+        <Stat label="Score" value={`${result.score}%`} />
+        <span className="w-0.5 h-8 bg-ink/20" />
+        <Stat label="XP earned" value={`+${result.xpEarned}`} accent />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.65, type: "spring", stiffness: 120, damping: 18 }}
+        className="mt-6 rounded-xl border-2 border-line bg-paper-2 px-6 py-5"
+      >
+        {error ? (
+          <>
+            <p className="font-mono text-xs font-bold text-berry mb-3">{error}</p>
+            <PrimaryButton className="w-full" onClick={onRetry}>
+              Retry generating Phase {nextPhaseNumber}
+            </PrimaryButton>
+          </>
+        ) : generating ? (
+          <div className="flex flex-col items-center gap-3">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+              className="w-7 h-7 rounded-full border-[3px] border-line border-t-clay"
+            />
+            <p className="font-mono text-sm font-bold text-ink-soft">
+              Building Phase {nextPhaseNumber}…
+            </p>
+            <p className="text-xs text-ink-faint">This takes about 15–20 seconds</p>
+          </div>
+        ) : (
+          <PrimaryButton className="w-full" onClick={() => onContinue(dashboardHref)}>
+            Continue to dashboard <ArrowRight size={18} weight="bold" />
+          </PrimaryButton>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }
 

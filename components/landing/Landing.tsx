@@ -164,7 +164,7 @@ function HeroPreview() {
       <motion.div
         animate={{ y: [0, -9, 0] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -bottom-6 -left-4 sm:-left-7"
+        className="absolute -bottom-6 left-0 sm:-left-7"
       >
         <Stamp spin={-12} tone="sun" className="w-20 h-20 bg-cream shadow-hard-sm">
           <span className="flex flex-col items-center leading-none">

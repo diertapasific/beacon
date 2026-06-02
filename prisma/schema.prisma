@@ -36,7 +36,8 @@ model LearningPath {
   level        String // "beginner" | "intermediate" | "advanced"
   hoursPerWeek Int
   goal         String?
-  rawJson      Json // Full Groq response — cached forever
+  rawJson      Json     // Accumulated phase data — appended as phases generate
+  totalPhases  Int      @default(1) // Planned total; generated count derived from lessons
   createdAt    DateTime @default(now())
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)

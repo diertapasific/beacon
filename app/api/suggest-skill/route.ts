@@ -1,4 +1,4 @@
-import { genAI, CHAT_MODEL } from "@/lib/groq";
+import { genAI, CHAT_MODEL } from "@/lib/ai";
 import { getUser } from "@/lib/auth";
 
 const ANGLES = [

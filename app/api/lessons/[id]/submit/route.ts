@@ -4,7 +4,7 @@ import { updateStreak } from "@/lib/streak";
 import { getLevelFromXP } from "@/lib/xp";
 import { XP_REWARDS } from "@/lib/xp";
 import { checkAchievements } from "@/lib/achievements";
-import type { QuizQuestion } from "@/lib/groq";
+import type { QuizQuestion } from "@/lib/ai";
 
 const PASS_THRESHOLD = 80; // BRD: >=80% to pass a micro-lesson quiz
 

@@ -32,6 +32,9 @@ export interface DashboardData {
   totalLessons: number;
   bonusXpActive: boolean;
   allDone: boolean;
+  totalPhases: number;
+  generatedPhases: number; // highest phaseNumber present in lessons
+  nextPhaseNumber: number | null; // next phase to generate, null when all generated
   achievements: { type: string; label: string; icon: string; desc: string; unlockedAt: string }[];
 }
 
@@ -96,6 +99,11 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
 
   const completedToday = path.lessons.filter((l) => l.progress[0]?.completedOn === today).length;
   const totalCompleted = lessons.filter((l) => l.completed).length;
+  const generatedPhases = path.lessons.length > 0
+    ? Math.max(...path.lessons.map((l) => l.phaseNumber))
+    : 1;
+  const totalPhases = path.totalPhases ?? 1;
+  const nextPhaseNumber = generatedPhases < totalPhases ? generatedPhases + 1 : null;
 
   // Extract phase themes from rawJson (stored as GeneratedPath).
   // Falls back to the legacy `weeks` shape for paths generated before the rename.
@@ -131,7 +139,10 @@ export async function getDashboardData(userId: string, pathId: string): Promise<
     totalCompleted,
     totalLessons: lessons.length,
     bonusXpActive: completedToday >= 2,
-    allDone: nextLesson === null,
+    allDone: nextLesson === null && nextPhaseNumber === null,
+    totalPhases,
+    generatedPhases,
+    nextPhaseNumber,
     achievements: achievements.map((a) => {
       const meta = ACHIEVEMENTS[a.type as AchievementType] ?? {
         label: a.type,

@@ -1,5 +1,5 @@
-import { genAI, GEN_MODEL, buildPhasePrompt, parsePhaseResponse, getPathStructure } from "@/lib/groq";
-import type { GeneratedPath } from "@/lib/groq";
+import { genAI, GEN_MODEL, buildPhasePrompt, parsePhaseResponse, getPathStructure } from "@/lib/ai";
+import type { GeneratedPath } from "@/lib/ai";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
 import { Prisma, LessonType } from "@prisma/client";
@@ -56,26 +56,21 @@ export async function POST(req: Request) {
       },
     });
 
-    // Sequential — parallel bursts trigger 503s on Gemini free tier, which causes
-    // retries that waste RPD. Sequential uses exactly 1 RPD per phase (~5 phases max).
-    const phaseNums = Array.from({ length: phaseCount }, (_, i) => i + 1);
-    const phaseContents: string[] = [];
-    for (const phase of phaseNums) {
-      const content = await withRetry(async () => {
-        const result = await model.generateContent(
-          buildPhasePrompt(skill, level, Number(hoursPerWeek), goal, phase, phaseCount, minLessons, maxLessons, covered)
-        );
-        return result.response.text();
-      });
-      phaseContents.push(content);
-    }
+    // Generate Phase 1 only — subsequent phases are generated progressively
+    // as the user completes each phase, via POST /api/phases/[pathId]/generate.
+    const phase1Raw = await withRetry(async () => {
+      const result = await model.generateContent(
+        buildPhasePrompt(skill, level, Number(hoursPerWeek), goal, 1, phaseCount, minLessons, maxLessons, covered)
+      );
+      return result.response.text();
+    });
 
-    const phases = phaseContents.map((content, i) => parsePhaseResponse(content, i + 1));
+    const phase1 = parsePhaseResponse(phase1Raw, 1);
 
     const parsed: GeneratedPath = {
       skill: String(skill),
       totalPhases: phaseCount,
-      phases,
+      phases: [phase1],
     };
 
     const path = await prisma.learningPath.create({
@@ -86,20 +81,19 @@ export async function POST(req: Request) {
         hoursPerWeek: Number(hoursPerWeek),
         goal: goal ? String(goal) : null,
         rawJson: parsed as unknown as Prisma.InputJsonValue,
+        totalPhases: phaseCount,
         lessons: {
-          create: parsed.phases.flatMap((phase) =>
-            phase.lessons.map((lesson) => ({
-              phaseNumber: phase.phase,
-              order: lesson.order,
-              type: coerceType(lesson.type),
-              headline: lesson.headline,
-              coreIdea: lesson.coreIdea,
-              example: lesson.example,
-              realWorldUse: lesson.realWorldUse,
-              estimatedSec: lesson.estimatedSec ?? 90,
-              quiz: lesson.quiz as unknown as Prisma.InputJsonValue,
-            }))
-          ),
+          create: phase1.lessons.map((lesson) => ({
+            phaseNumber: phase1.phase,
+            order: lesson.order,
+            type: coerceType(lesson.type),
+            headline: lesson.headline,
+            coreIdea: lesson.coreIdea,
+            example: lesson.example,
+            realWorldUse: lesson.realWorldUse,
+            estimatedSec: lesson.estimatedSec ?? 90,
+            quiz: lesson.quiz as unknown as Prisma.InputJsonValue,
+          })),
         },
       },
     });
