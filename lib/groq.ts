@@ -1,18 +1,11 @@
-import Groq from "groq-sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
-// Models are swappable via env so you can trade quality for a larger free
-// daily token budget without a redeploy.
-//
-// PATH_MODEL — path/lesson generation. Token-heavy, benefits from a strong
-// (or reasoning) model. Defaults to the high-quality 70B.
-export const PATH_MODEL = process.env.GROQ_PATH_MODEL || "llama-3.3-70b-versatile";
-
-// CHAT_MODEL — the tutor chat and skill suggestion. Short outputs + streaming,
-// so a fast NON-reasoning model is the right fit (reasoning models can blow the
-// tiny token caps these use). Lives on its own daily token bucket too.
-export const CHAT_MODEL = process.env.GROQ_CHAT_MODEL || "llama-3.1-8b-instant";
+// Best free-tier model: 250k TPM / 500 RPD / 15 RPM — far ahead of alternatives
+// which cap at 20 RPD (only ~4 full path generations/day).
+export const GEN_MODEL = "gemini-3.1-flash-lite";
+export const CHAT_MODEL = "gemini-3.1-flash-lite";
 
 const PHASE_THEMES = [
   "Foundations — core mental models, key terminology, why this skill matters",
@@ -42,15 +35,13 @@ export function getPathStructure(level: string, hoursPerWeek: number): {
 } {
   const h = Number(hoursPerWeek);
 
-  // Cap at 4 phases: free-tier TPM forces sequential generation, and
-  // 5 × ~10s would push past Vercel's 60s maxDuration.
   const phaseCount =
     level === "beginner"     ? (h <= 2 ? 3 : 4) :
-    level === "advanced"     ? 4 :
-    /* intermediate */          (h <= 2 ? 3 : 4);
+    level === "advanced"     ? (h <= 2 ? 4 : 5) :
+    /* intermediate */          (h <= 2 ? 3 : h >= 5 ? 5 : 4);
 
-  const minLessons = h <= 2 ? 4 : h <= 4 ? 5 : 6;
-  const maxLessons = h <= 2 ? 5 : h <= 4 ? 6 : 7;
+  const minLessons = h <= 2 ? 5 : h <= 4 ? 6 : 7;
+  const maxLessons = h <= 2 ? 7 : h <= 4 ? 9 : 10;
 
   return { phaseCount, minLessons, maxLessons };
 }
@@ -84,9 +75,9 @@ LESSON RULES (non-negotiable):
 - Generate between ${minLessons} and ${maxLessons} lessons — choose the count that best fits the theme's natural scope. Do not pad to hit a number.
 - Each lesson covers ONE focused, specific concept, mechanic, strategy, or comparison — never a vague overview
 - Headlines must be specific and concrete ("How Rent Calculation Works in Monopoly" not "Understanding Rent")
-- coreIdea: 3-5 sentences covering WHAT it is, HOW it works mechanically, and WHY it matters
-- example: A precise real-world analogy, a named historical example, or a concrete scenario — no generic placeholders
-- realWorldUse: A specific real example, published study, notable player story, or documented application of this concept
+- coreIdea: 4-6 sentences covering WHAT it is, HOW it works mechanically, WHY it matters, and one subtle nuance or common misconception beginners miss
+- example: A NAMED, specific real-world analogy — name the company, person, game, or event. Zero generic placeholders like "for example, a company might..."
+- realWorldUse: A documented, named example with a concrete outcome or metric. Not "companies use this" — name the actual company, study, or person and what happened
 - estimatedSec: 120 to 180
 
 CRITICAL — MATCH THE SKILL DOMAIN:
@@ -101,11 +92,12 @@ PHASE ${phaseNumber} MUST INCLUDE:
 - No more than 2 consecutive lessons of the same type
 
 QUIZ RULES:
-- 3-4 questions per lesson
+- 4-5 questions per lesson
 - Mix types aggressively — never 3 multiple_choice in a row
-- Test understanding ("why does X happen") not just recall ("what is X")
+- Test understanding ("why does X happen") and application ("given this scenario, what would you do") not just recall ("what is X")
 - All multiple_choice options must be plausible — no obviously wrong distractors
 - Every question MUST include a "hint" field: one sentence that nudges toward the answer without giving it away directly
+- At least 1 question per lesson must present a realistic scenario and ask the learner to apply the concept
 
 Return ONLY valid JSON, no markdown:
 {
@@ -207,8 +199,27 @@ export interface GeneratedPath {
   phases: GeneratedPhase[];
 }
 
+function extractFirstJsonObject(raw: string): string {
+  const start = raw.indexOf("{");
+  if (start === -1) return raw;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < raw.length; i++) {
+    const c = raw[i];
+    if (escaped)        { escaped = false; continue; }
+    if (c === "\\")     { escaped = true;  continue; }
+    if (c === '"')      { inString = !inString; continue; }
+    if (inString)       continue;
+    if (c === "{")      depth++;
+    else if (c === "}") { if (--depth === 0) return raw.slice(start, i + 1); }
+  }
+  return raw.slice(start); // truncated — return best effort
+}
+
 function stripFences(raw: string): string {
-  return raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const s = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  return extractFirstJsonObject(s);
 }
 
 /** Parse a single-phase response from buildPhasePrompt. */

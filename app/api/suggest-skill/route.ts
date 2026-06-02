@@ -1,7 +1,6 @@
-import { groq, CHAT_MODEL } from "@/lib/groq";
+import { genAI, CHAT_MODEL } from "@/lib/groq";
 import { getUser } from "@/lib/auth";
 
-// Rotating domain angles so repeated clicks don't all return tech topics.
 const ANGLES = [
   "a practical technology, data, or AI skill",
   "a way to understand money, investing, or the economy",
@@ -20,26 +19,18 @@ export async function POST() {
   const angle = ANGLES[Math.floor(Math.random() * ANGLES.length)];
 
   try {
-    const completion = await groq.chat.completions.create({
+    const model = genAI.getGenerativeModel({
       model: CHAT_MODEL,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You suggest one specific, genuinely interesting skill a curious person could start learning today. Reply with ONLY the skill name — 1 to 4 words, in Title Case, no punctuation, no quotes, no explanation.",
-        },
-        {
-          role: "user",
-          content: `Suggest ${angle} that feels fresh and worth learning right now. Be specific and a little unexpected — never a generic textbook subject.`,
-        },
-      ],
-      // Headroom so a reasoning model (if configured) can think and still
-      // emit the name; we only keep the first line anyway.
-      max_tokens: 256,
-      temperature: 1,
+      systemInstruction:
+        "You suggest one specific, genuinely interesting skill a curious person could start learning today. Reply with ONLY the skill name — 1 to 4 words, in Title Case, no punctuation, no quotes, no explanation.",
+      generationConfig: { maxOutputTokens: 64, temperature: 1 },
     });
 
-    const raw = completion.choices[0]?.message?.content ?? "";
+    const result = await model.generateContent(
+      `Suggest ${angle} that feels fresh and worth learning right now. Be specific and a little unexpected — never a generic textbook subject.`
+    );
+
+    const raw = result.response.text();
     const skill = raw
       .split("\n")[0]
       .replace(/^["'\s]+|["'.\s]+$/g, "")

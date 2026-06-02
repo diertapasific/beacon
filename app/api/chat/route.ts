@@ -1,4 +1,4 @@
-import { groq, CHAT_MODEL } from "@/lib/groq";
+import { genAI, CHAT_MODEL } from "@/lib/groq";
 import { getUser } from "@/lib/auth";
 
 interface LessonContext {
@@ -42,27 +42,32 @@ export async function POST(req: Request) {
     lessonContext: LessonContext;
   };
 
-  if (!lessonContext || !Array.isArray(messages)) {
+  if (!lessonContext || !Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const stream = await groq.chat.completions.create({
+  const recentMessages = messages.slice(-12);
+  const history = recentMessages.slice(0, -1).map((m) => ({
+    role: m.role === "assistant" ? ("model" as const) : ("user" as const),
+    parts: [{ text: m.content }],
+  }));
+  const lastMessage = recentMessages[recentMessages.length - 1];
+
+  const model = genAI.getGenerativeModel({
     model: CHAT_MODEL,
-    messages: [
-      { role: "system", content: buildSystemPrompt(lessonContext) },
-      ...messages.slice(-12),
-    ],
-    stream: true,
-    max_tokens: 400,
-    temperature: 0.65,
+    systemInstruction: buildSystemPrompt(lessonContext),
+    generationConfig: { maxOutputTokens: 400, temperature: 0.65 },
   });
+
+  const chat = model.startChat({ history });
+  const result = await chat.sendMessageStream(lastMessage.content);
 
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
     async start(controller) {
       try {
-        for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content ?? "";
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
           if (text) controller.enqueue(encoder.encode(text));
         }
       } finally {

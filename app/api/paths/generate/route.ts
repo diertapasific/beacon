@@ -1,10 +1,9 @@
-import { groq, buildPhasePrompt, parsePhaseResponse, getPathStructure, PATH_MODEL } from "@/lib/groq";
+import { genAI, GEN_MODEL, buildPhasePrompt, parsePhaseResponse, getPathStructure } from "@/lib/groq";
 import type { GeneratedPath } from "@/lib/groq";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
 import { Prisma, LessonType } from "@prisma/client";
 
-// Path generation can take a little while — allow up to 60s on Vercel.
 export const maxDuration = 60;
 
 const VALID_TYPES = new Set<string>(Object.values(LessonType));
@@ -13,52 +12,16 @@ function coerceType(type: string): LessonType {
   return VALID_TYPES.has(type) ? (type as LessonType) : LessonType.concept_card;
 }
 
-interface RateLimit {
-  limited: boolean; // server rejected us for a limit (429) or oversized request (413)
-  retryAfterSec: number;
-  daily: boolean; // hit the per-day token cap (TPD) rather than a per-minute burst
-  tooLarge: boolean; // request bigger than the model's per-minute window (413 / TPM)
-  shouldRetry: boolean;
-}
-
-/** Best-effort extraction of rate-limit details from a Groq SDK error. */
-function readRateLimit(err: unknown): RateLimit {
-  const e = err as {
-    status?: number;
-    headers?: Headers | Record<string, string>;
-    error?: { error?: { message?: string } };
-    message?: string;
-  };
-  const h = e?.headers;
-  const get = (k: string): string | null => {
-    if (!h) return null;
-    if (typeof (h as Headers).get === "function") return (h as Headers).get(k);
-    return (h as Record<string, string>)[k] ?? null;
-  };
-  const status = e?.status ?? 0;
-  const msg = e?.error?.error?.message ?? e?.message ?? "";
-  return {
-    limited: status === 429 || status === 413,
-    retryAfterSec: Number(get("retry-after")) || 0,
-    shouldRetry: get("x-should-retry") !== "false",
-    daily: /per day|\bTPD\b/i.test(msg),
-    tooLarge: status === 413 || /request too large|tokens per minute|\bTPM\b/i.test(msg),
-  };
-}
-
-async function withRetry<T>(fn: () => Promise<T>, retries = 4, baseDelayMs = 1500): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fn();
     } catch (err: unknown) {
-      const { limited, retryAfterSec, daily, tooLarge, shouldRetry } = readRateLimit(err);
-      // Only retry short, transient per-minute bursts. Daily caps and
-      // request-too-large errors can't be fixed by waiting a few seconds, and
-      // retrying would just burn the function's time budget (maxDuration).
-      const transient = limited && shouldRetry && !daily && !tooLarge && retryAfterSec <= 30;
-      if (transient && attempt < retries) {
-        const wait = Math.max(baseDelayMs * 2 ** attempt, retryAfterSec * 1000) + 200;
-        await new Promise((res) => setTimeout(res, wait));
+      const status = (err as { status?: number })?.status ?? 0;
+      // 429 = rate limited, 503 = temporary high demand — both are retriable
+      const retriable = status === 429 || status === 503;
+      if (retriable && attempt < retries) {
+        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
         continue;
       }
       throw err;
@@ -77,41 +40,37 @@ export async function POST(req: Request) {
   }
   const covered: string[] = Array.isArray(coveredTopics) ? coveredTopics : [];
 
-  if (!process.env.GROQ_API_KEY) {
-    return Response.json({ error: "Generation is not configured (missing GROQ_API_KEY)" }, { status: 503 });
+  if (!process.env.GEMINI_API_KEY) {
+    return Response.json({ error: "Generation is not configured (missing GEMINI_API_KEY)" }, { status: 503 });
   }
 
   try {
     const { phaseCount, minLessons, maxLessons } = getPathStructure(String(level), Number(hoursPerWeek));
 
-    // Sequential generation: free-tier TPM (12k/min) is too narrow to run even
-    // 2 phases in parallel at this prompt + output size without 413s. Each
-    // request uses ≈1 400 prompt + 4 500 max_tokens = ≈5 900 tokens — well
-    // under 12k on its own. phaseCount is capped at 4 so worst-case is
-    // 4 × ~10s ≈ 40s, safely inside Vercel's 60s maxDuration.
+    const model = genAI.getGenerativeModel({
+      model: GEN_MODEL,
+      generationConfig: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 12000,
+        temperature: 0.7,
+      },
+    });
+
+    // Sequential — parallel bursts trigger 503s on Gemini free tier, which causes
+    // retries that waste RPD. Sequential uses exactly 1 RPD per phase (~5 phases max).
     const phaseNums = Array.from({ length: phaseCount }, (_, i) => i + 1);
-    const phaseCompletions = [] as Array<{ choices: Array<{ message: { content: string | null } }> }>;
+    const phaseContents: string[] = [];
     for (const phase of phaseNums) {
-      const completion = await withRetry(() =>
-        groq.chat.completions.create({
-          model: PATH_MODEL,
-          messages: [
-            {
-              role: "user",
-              content: buildPhasePrompt(skill, level, Number(hoursPerWeek), goal, phase, phaseCount, minLessons, maxLessons, covered),
-            },
-          ],
-          max_tokens: 4500,
-          temperature: 0.7,
-          response_format: { type: "json_object" },
-        })
-      );
-      phaseCompletions.push(completion);
+      const content = await withRetry(async () => {
+        const result = await model.generateContent(
+          buildPhasePrompt(skill, level, Number(hoursPerWeek), goal, phase, phaseCount, minLessons, maxLessons, covered)
+        );
+        return result.response.text();
+      });
+      phaseContents.push(content);
     }
 
-    const phases = phaseCompletions.map((c, i) =>
-      parsePhaseResponse(c.choices[0]?.message?.content ?? "", i + 1)
-    );
+    const phases = phaseContents.map((content, i) => parsePhaseResponse(content, i + 1));
 
     const parsed: GeneratedPath = {
       skill: String(skill),
@@ -147,32 +106,14 @@ export async function POST(req: Request) {
 
     return Response.json({ pathId: path.id });
   } catch (err) {
-    const { limited, retryAfterSec, daily, tooLarge } = readRateLimit(err);
-    if (tooLarge) {
-      // The model's per-minute token window is smaller than our request
-      // (e.g. gpt-oss-20b free tier, TPM 8000). Retrying can't help — this is a
-      // model-choice issue, surfaced loudly for the operator.
-      console.error(
-        `[generate] 413 request too large for model "${PATH_MODEL}". Its per-minute ` +
-          `token limit is below the request size. Use a higher-TPM model ` +
-          `(e.g. llama-3.3-70b-versatile) via GROQ_PATH_MODEL, or upgrade the Groq tier.`,
-      );
+    const status = (err as { status?: number })?.status ?? 0;
+    if (status === 429 || status === 503) {
       return Response.json(
-        { error: "The AI model is over capacity right now. Please try again in a few minutes.", code: "too_large" },
-        { status: 503 },
+        { error: "Beacon's AI is over capacity right now. Please try again in a minute.", code: "rate_limited" },
+        { status: 429 }
       );
     }
-    if (limited) {
-      const mins = retryAfterSec ? Math.max(1, Math.ceil(retryAfterSec / 60)) : null;
-      const message = daily
-        ? `Beacon's daily AI limit has been reached${mins ? ` — try again in about ${mins} min` : ""}. Sorry about that.`
-        : `Too many requests right now${mins ? ` — try again in about ${mins} min` : ", give it a moment"}.`;
-      return Response.json(
-        { error: message, code: "rate_limited", retryAfter: retryAfterSec || null },
-        { status: 429, ...(retryAfterSec ? { headers: { "Retry-After": String(retryAfterSec) } } : {}) },
-      );
-    }
-    console.error("Groq path generation failed:", err);
+    console.error("Gemini path generation failed:", err);
     return Response.json({ error: "Generation failed, please try again" }, { status: 500 });
   }
 }
