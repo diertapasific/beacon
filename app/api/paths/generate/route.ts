@@ -84,9 +84,13 @@ export async function POST(req: Request) {
   try {
     const { phaseCount, minLessons, maxLessons } = getPathStructure(String(level), Number(hoursPerWeek));
 
-    // Generate phases sequentially to stay within free-tier TPM limits.
+    // Sequential generation: free-tier TPM (12k/min) is too narrow to run even
+    // 2 phases in parallel at this prompt + output size without 413s. Each
+    // request uses ≈1 400 prompt + 4 500 max_tokens = ≈5 900 tokens — well
+    // under 12k on its own. phaseCount is capped at 4 so worst-case is
+    // 4 × ~10s ≈ 40s, safely inside Vercel's 60s maxDuration.
     const phaseNums = Array.from({ length: phaseCount }, (_, i) => i + 1);
-    const phaseCompletions = [];
+    const phaseCompletions = [] as Array<{ choices: Array<{ message: { content: string | null } }> }>;
     for (const phase of phaseNums) {
       const completion = await withRetry(() =>
         groq.chat.completions.create({
@@ -97,7 +101,7 @@ export async function POST(req: Request) {
               content: buildPhasePrompt(skill, level, Number(hoursPerWeek), goal, phase, phaseCount, minLessons, maxLessons, covered),
             },
           ],
-          max_tokens: 8000,
+          max_tokens: 4500,
           temperature: 0.7,
           response_format: { type: "json_object" },
         })

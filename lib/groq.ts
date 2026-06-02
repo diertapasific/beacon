@@ -42,13 +42,15 @@ export function getPathStructure(level: string, hoursPerWeek: number): {
 } {
   const h = Number(hoursPerWeek);
 
+  // Cap at 4 phases: free-tier TPM forces sequential generation, and
+  // 5 × ~10s would push past Vercel's 60s maxDuration.
   const phaseCount =
     level === "beginner"     ? (h <= 2 ? 3 : 4) :
-    level === "advanced"     ? (h <= 2 ? 4 : 5) :
-    /* intermediate */          (h <= 2 ? 3 : h >= 5 ? 5 : 4);
+    level === "advanced"     ? 4 :
+    /* intermediate */          (h <= 2 ? 3 : 4);
 
   const minLessons = h <= 2 ? 4 : h <= 4 ? 5 : 6;
-  const maxLessons = h <= 2 ? 5 : h <= 4 ? 7 : 8;
+  const maxLessons = h <= 2 ? 5 : h <= 4 ? 6 : 7;
 
   return { phaseCount, minLessons, maxLessons };
 }
