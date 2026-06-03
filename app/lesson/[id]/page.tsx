@@ -11,15 +11,25 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   const user = await getUser();
   if (!user) redirect("/auth/login");
 
-  // Get the lesson and its path together — supports multiple paths per user.
+  // Load the lesson with full content. For path navigation (finding index,
+  // next lesson ID, phase membership) we only need lightweight nav fields —
+  // selecting them avoids fetching quiz JSON blobs for every other lesson.
   const lessonRecord = await prisma.lesson.findUnique({
     where: { id },
     include: {
       path: {
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          totalPhases: true,
           lessons: {
             orderBy: [{ phaseNumber: "asc" }, { order: "asc" }],
-            include: { progress: { where: { userId: user.id } } },
+            select: {
+              id: true,
+              phaseNumber: true,
+              order: true,
+              progress: { where: { userId: user.id }, select: { completed: true } },
+            },
           },
         },
       },
@@ -44,15 +54,16 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
     redirect(nextId ? `/lesson/${nextId}` : `/dashboard/${pathId}`);
   }
 
+  // Use lessonRecord directly for content — it IS the queried lesson.
   const lesson: LessonContent = {
-    id: target.id,
-    type: target.type,
-    headline: target.headline,
-    coreIdea: target.coreIdea,
-    example: target.example,
-    realWorldUse: target.realWorldUse,
-    estimatedSec: target.estimatedSec,
-    quiz: target.quiz as unknown as LessonContent["quiz"],
+    id: lessonRecord.id,
+    type: lessonRecord.type,
+    headline: lessonRecord.headline,
+    coreIdea: lessonRecord.coreIdea,
+    example: lessonRecord.example,
+    realWorldUse: lessonRecord.realWorldUse,
+    estimatedSec: lessonRecord.estimatedSec,
+    quiz: lessonRecord.quiz as unknown as LessonContent["quiz"],
   };
 
   const subsequentLessonId = path.lessons[idx + 1]?.id ?? null;

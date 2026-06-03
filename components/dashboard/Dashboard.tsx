@@ -32,7 +32,13 @@ const item = {
 };
 
 export function Dashboard({ data, showTour = false }: { data: DashboardData; showTour?: boolean }) {
+  const router = useRouter();
   const hello = useGreeting();
+
+  // Revalidate server component data on every mount so back-navigation never
+  // shows stale lesson progress or a dismissed tour (Next.js router cache
+  // preserves the RSC snapshot from the original visit).
+  useEffect(() => { router.refresh(); }, [router]);
   const firstName = data.name?.split(" ")[0];
   const phases = groupByPhase(data.lessons);
   const nextLesson = data.lessons.find((l) => l.id === data.nextLessonId);

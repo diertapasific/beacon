@@ -55,11 +55,15 @@ function PathRow({ path, onDeleted }: { path: PathSummary; onDeleted: (id: strin
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint">
             {LEVEL_LABELS[path.level] ?? path.level}
           </span>
-          {done && (
+          {done ? (
             <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase text-teal-deep bg-teal-tint border-2 border-line rounded-full px-2 py-0.5">
               <Check size={10} weight="bold" /> Complete
             </span>
-          )}
+          ) : path.totalPhases > 1 ? (
+            <span className="font-mono text-[10px] font-bold text-ink-faint border-2 border-line rounded-full px-2 py-0.5">
+              Phase {path.currentPhase}/{path.totalPhases}
+            </span>
+          ) : null}
         </div>
         <div className="flex items-center gap-3">
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-ink truncate">{toTitleCase(path.skill)}</h2>

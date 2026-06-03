@@ -142,7 +142,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
   }
 
-  // Lessons completed today before this one (for the 1.5x bonus after #2).
+  // Count lessons completed today BEFORE upserting so the current lesson isn't
+  // included in the bonus threshold check.
   const completedToday = await prisma.userProgress.count({
     where: { userId: user.id, completedOn: today, completed: true },
   });
@@ -150,27 +151,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   xpEarned +=
     completedToday >= 2 ? XP_REWARDS.LESSON_COMPLETE_BONUS : XP_REWARDS.LESSON_COMPLETE;
 
-  await prisma.userProgress.upsert({
-    where: { userId_lessonId: { userId: user.id, lessonId: id } },
-    update: {
-      completed: true,
-      score,
-      completedAt: new Date(),
-      completedOn: today,
-      attempts: { increment: 1 },
-    },
-    create: {
-      userId: user.id,
-      lessonId: id,
-      completed: true,
-      score,
-      completedAt: new Date(),
-      completedOn: today,
-      attempts: 1,
-    },
-  });
+  // Persist progress and update streak in parallel — neither depends on the other.
+  const [streak] = await Promise.all([
+    updateStreak(user.id),
+    prisma.userProgress.upsert({
+      where: { userId_lessonId: { userId: user.id, lessonId: id } },
+      update: {
+        completed: true,
+        score,
+        completedAt: new Date(),
+        completedOn: today,
+        attempts: { increment: 1 },
+      },
+      create: {
+        userId: user.id,
+        lessonId: id,
+        completed: true,
+        score,
+        completedAt: new Date(),
+        completedOn: today,
+        attempts: 1,
+      },
+    }),
+  ]);
 
-  const streak = await updateStreak(user.id);
   if (streak.current > 0 && streak.current % 7 === 0) {
     xpEarned += XP_REWARDS.STREAK_MILESTONE;
   }
@@ -180,12 +184,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const newLevel = getLevelFromXP(newXp);
   const leveledUp = newLevel > getLevelFromXP(prevXp);
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { totalXp: newXp, level: newLevel },
-  });
-
-  const unlockedAchievements = await checkAchievements(user.id, streak.current, newLevel);
+  // Update user XP and check achievements in parallel — checkAchievements reads
+  // its own data (progress counts, existing achievements) and doesn't need the
+  // user.update to complete first.
+  const [, unlockedAchievements] = await Promise.all([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { totalXp: newXp, level: newLevel },
+    }),
+    checkAchievements(user.id, streak.current, newLevel),
+  ]);
 
   return Response.json({
     passed: true,

@@ -55,6 +55,8 @@ export interface PathSummary {
   createdAt: string;
   totalLessons: number;
   completedLessons: number;
+  totalPhases: number;
+  currentPhase: number;
 }
 
 /**
@@ -183,12 +185,24 @@ export async function getProfileData(userId: string): Promise<ProfileData | null
 
 /** Summary of all paths for the paths list page. */
 export async function getUserPathsSummary(userId: string): Promise<PathSummary[]> {
+  // Select only what's needed — avoids loading quiz JSON blobs for every lesson.
   const paths = await prisma.learningPath.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
-    include: {
+    select: {
+      id: true,
+      skill: true,
+      level: true,
+      goal: true,
+      createdAt: true,
+      totalPhases: true,
       lessons: {
-        include: { progress: { where: { userId } } },
+        orderBy: [{ phaseNumber: "asc" as const }, { order: "asc" as const }],
+        select: {
+          id: true,
+          phaseNumber: true,
+          progress: { where: { userId, completed: true }, select: { id: true } },
+        },
       },
     },
   });
@@ -200,6 +214,9 @@ export async function getUserPathsSummary(userId: string): Promise<PathSummary[]
     goal: p.goal,
     createdAt: p.createdAt.toISOString(),
     totalLessons: p.lessons.length,
-    completedLessons: p.lessons.filter((l) => l.progress[0]?.completed).length,
+    completedLessons: p.lessons.filter((l) => l.progress.length > 0).length,
+    totalPhases: p.totalPhases ?? 1,
+    // Phase of the first uncompleted lesson — shows where the user currently is.
+    currentPhase: p.lessons.find((l) => l.progress.length === 0)?.phaseNumber ?? 1,
   }));
 }

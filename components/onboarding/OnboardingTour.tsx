@@ -77,8 +77,13 @@ export function OnboardingTour() {
 
   // Client-only mount gate: the portal targets document.body, so we render
   // null until after hydration to keep server and first client render in sync.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setMounted(true), []);
+  // Also suppress the tour if the user already dismissed it this session —
+  // the RSC payload cached before dismissal would otherwise re-show it on back
+  // navigation (Next.js router cache) even though hasOnboarded is now true.
+  useEffect(() => {
+    setMounted(true);
+    if (sessionStorage.getItem("beacon_tour_done") === "1") setGone(true);
+  }, []);
 
   const measure = useCallback(() => {
     setVp({ w: window.innerWidth, h: window.innerHeight });
@@ -127,6 +132,7 @@ export function OnboardingTour() {
   const finish = useCallback(() => {
     if (finishedRef.current) return;
     finishedRef.current = true;
+    sessionStorage.setItem("beacon_tour_done", "1");
     // Fire-and-forget — the flag is server-side, so a failure just means the
     // tour may reappear on a later visit; never block the UI on it.
     fetch("/api/onboarding/complete", { method: "POST" }).catch(() => {});
