@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatCircle, X, PaperPlaneTilt, ProhibitInset } from "@phosphor-icons/react";
-import { CHAT_DAILY_LIMIT } from "@/app/api/chat/route";
+
+const CHAT_DAILY_LIMIT = 10;
 
 interface Message {
   role: "user" | "assistant";
@@ -31,10 +32,10 @@ export function LessonChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
 
-  // Fetch quota when the panel opens.
+  // Fetch quota whenever the panel opens.
   useEffect(() => {
     if (!open) return;
-    const t = setTimeout(() => inputRef.current?.focus(), 320);
+    const t = setTimeout(() => inputRef.current?.focus(), 260);
     fetch("/api/chat")
       .then((r) => r.json())
       .then((d: { remaining?: number }) => {
@@ -71,13 +72,13 @@ export function LessonChat({
         signal: abortRef.current.signal,
       });
 
-      // Read quota header as soon as headers arrive (before stream completes).
+      // Header is available before stream body arrives.
       const headerRemaining = res.headers.get("X-Chat-Remaining");
       if (headerRemaining !== null) setRemaining(Number(headerRemaining));
 
       if (res.status === 429) {
         setRemaining(0);
-        setMessages((prev) => prev.slice(0, -1)); // remove the optimistic user message
+        setMessages((prev) => prev.slice(0, -1));
         setInput(text);
         return;
       }
@@ -93,7 +94,6 @@ export function LessonChat({
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let full = "";
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -115,7 +115,6 @@ export function LessonChat({
     }
   }
 
-  // Quota pill colour
   const quotaColor =
     remaining === null
       ? "text-ink-faint"
@@ -127,57 +126,61 @@ export function LessonChat({
 
   return (
     <>
-      {/* FAB */}
-      <AnimatePresence>
-        {!open && (
-          <motion.button
-            key="fab"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 22 }}
-            onClick={() => setOpen(true)}
-            className="fixed bottom-6 right-4 sm:right-6 z-30 w-14 h-14 rounded-full
-              bg-clay text-cream border-2 border-transparent
-              shadow-hard-clay press-clay grid place-items-center"
-            aria-label="Open lesson chat"
-          >
-            <ChatCircle size={26} weight="fill" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* FAB — toggles open/close */}
+      <motion.button
+        animate={open ? { scale: 1 } : { scale: 1 }}
+        whileTap={{ scale: 0.92 }}
+        onClick={() => (open ? close() : setOpen(true))}
+        className="fixed bottom-6 right-4 sm:right-6 z-40 w-14 h-14 rounded-full
+          bg-clay text-cream border-2 border-transparent
+          shadow-hard-clay press-clay grid place-items-center"
+        aria-label={open ? "Close lesson chat" : "Open lesson chat"}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {open ? (
+            <motion.span
+              key="close"
+              initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              exit={{ scale: 0.5, opacity: 0, rotate: 90 }}
+              transition={{ duration: 0.18 }}
+            >
+              <X size={22} weight="bold" />
+            </motion.span>
+          ) : (
+            <motion.span
+              key="chat"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              <ChatCircle size={26} weight="fill" />
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </motion.button>
 
-      {/* Backdrop */}
+      {/* Floating popup panel */}
       <AnimatePresence>
         {open && (
           <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            onClick={close}
-            className="fixed inset-0 z-30 bg-ink/20 backdrop-blur-[2px]"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Panel */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="panel"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 340, damping: 34 }}
-            className="fixed bottom-0 left-0 right-0 z-40 flex flex-col
-              bg-paper border-t-2 border-line rounded-t-[2rem] overflow-hidden
-              max-h-[600px]"
-            style={{ height: "65dvh" }}
+            key="popup"
+            initial={{ opacity: 0, scale: 0.88, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.88, y: 12 }}
+            transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            style={{ transformOrigin: "bottom right" }}
+            className="fixed bottom-24 right-4 sm:right-6 z-40
+              w-[calc(100vw-2rem)] sm:w-[380px]
+              h-[480px] max-h-[65dvh]
+              flex flex-col
+              bg-paper rounded-2xl border-2 border-line
+              shadow-[0_8px_40px_-4px_rgba(0,0,0,0.14)]
+              overflow-hidden"
           >
             {/* Header */}
-            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b-2 border-line">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b-2 border-line bg-cream">
               <div className="min-w-0">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-clay-deep">
                   Lesson tutor
@@ -212,8 +215,8 @@ export function LessonChat({
                         <ProhibitInset size={22} weight="fill" className="text-berry" />
                       </div>
                       <p className="font-bold text-ink text-sm">Daily limit reached</p>
-                      <p className="mt-1 text-sm text-ink-faint leading-relaxed max-w-[30ch]">
-                        You&apos;ve used all {CHAT_DAILY_LIMIT} chat messages for today. Come back tomorrow.
+                      <p className="mt-1 text-sm text-ink-faint leading-relaxed max-w-[26ch]">
+                        You&apos;ve used all {CHAT_DAILY_LIMIT} questions for today. Come back tomorrow.
                       </p>
                     </>
                   ) : (
@@ -222,7 +225,7 @@ export function LessonChat({
                         <ChatCircle size={22} weight="fill" className="text-clay-deep" />
                       </div>
                       <p className="font-bold text-ink text-sm">Got a question?</p>
-                      <p className="mt-1 text-sm text-ink-faint leading-relaxed max-w-[30ch]">
+                      <p className="mt-1 text-sm text-ink-faint leading-relaxed max-w-[26ch]">
                         I have the full lesson context. Ask anything about this material.
                       </p>
                     </>
@@ -231,12 +234,9 @@ export function LessonChat({
               )}
 
               {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
+                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[84%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed
+                    className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed
                       ${msg.role === "user"
                         ? "bg-clay text-cream rounded-br-sm"
                         : "bg-cream border-2 border-line text-ink rounded-bl-sm"
@@ -249,7 +249,7 @@ export function LessonChat({
 
               {streaming && (
                 <div className="flex justify-start">
-                  <div className="max-w-[84%] rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed bg-cream border-2 border-line text-ink">
+                  <div className="max-w-[86%] rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed bg-cream border-2 border-line text-ink">
                     {streamingContent || (
                       <span className="flex gap-1 items-center h-5">
                         <span className="w-1.5 h-1.5 rounded-full bg-ink-faint animate-bounce [animation-delay:0ms]" />
@@ -265,9 +265,9 @@ export function LessonChat({
             </div>
 
             {/* Input row */}
-            <div className="shrink-0 px-4 pb-6 pt-3 border-t-2 border-line">
+            <div className="shrink-0 px-4 pb-5 pt-3 border-t-2 border-line bg-cream">
               {exhausted ? (
-                <div className="flex items-center justify-center h-11 rounded-xl border-2 border-line bg-cream px-4">
+                <div className="flex items-center justify-center h-11 rounded-xl border-2 border-line bg-paper px-4">
                   <p className="text-sm font-medium text-ink-faint">
                     Daily limit reached — resets tomorrow
                   </p>
@@ -286,7 +286,7 @@ export function LessonChat({
                     }}
                     placeholder="Ask about this lesson…"
                     disabled={streaming}
-                    className="flex-1 h-11 rounded-xl border-2 border-line bg-cream px-4 text-sm text-ink
+                    className="flex-1 h-11 rounded-xl border-2 border-line bg-paper px-4 text-sm text-ink
                       placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-clay
                       disabled:opacity-50"
                   />
