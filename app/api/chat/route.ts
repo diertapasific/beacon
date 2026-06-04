@@ -70,6 +70,16 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
+  // Validate every message — prevents oversized payloads and role injection.
+  for (const msg of messages) {
+    if (!["user", "assistant"].includes(msg.role)) {
+      return Response.json({ error: "Invalid message role" }, { status: 400 });
+    }
+    if (typeof msg.content !== "string" || msg.content.length > 2000) {
+      return Response.json({ error: "Message content too long (max 2000 chars)" }, { status: 400 });
+    }
+  }
+
   // Fetch lesson from DB — client cannot inject arbitrary context.
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },

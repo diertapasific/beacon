@@ -3,8 +3,20 @@ import { prisma } from "@/lib/prisma";
 // Scheduled at 00:00 UTC via vercel.json. Resets any streak whose last
 // activity is older than yesterday (i.e. the user missed a full day).
 export async function GET(req: Request) {
+  const cronSecret = process.env.CRON_SECRET;
+
+  // Require a non-empty secret — an unset var must not silently open the endpoint.
+  if (!cronSecret) {
+    console.error("[cron] CRON_SECRET is not set — refusing to run");
+    return Response.json({ error: "Cron not configured" }, { status: 503 });
+  }
+
   const auth = req.headers.get("authorization");
-  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  // x-vercel-cron is injected by Vercel's scheduler — provides defence-in-depth
+  // so only the platform's own cron runner can trigger this, not arbitrary HTTP clients.
+  const isVercelCron = req.headers.get("x-vercel-cron") === "1";
+
+  if (!isVercelCron || auth !== `Bearer ${cronSecret}`) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

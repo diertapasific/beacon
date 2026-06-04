@@ -1,6 +1,7 @@
 import { genAI, GEN_MODEL, buildPhasePrompt, parsePhaseResponse, getPathStructure } from "@/lib/ai";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 import { Prisma, LessonType } from "@prisma/client";
 
 export const maxDuration = 60;
@@ -34,11 +35,22 @@ export async function POST(
   const user = await getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { pathId } = await params;
-  const { phaseNumber } = await req.json().catch(() => ({}));
+  // 1 generation per user per 30 seconds — prevents rapid-fire API abuse.
+  const rl = rateLimit(`phase-gen:${user.id}`, 1, 30 * 1_000);
+  if (!rl.allowed) {
+    return Response.json(
+      { error: "Please wait a moment before generating another phase.", code: "rate_limited" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
 
-  if (!phaseNumber || typeof phaseNumber !== "number") {
-    return Response.json({ error: "phaseNumber required" }, { status: 400 });
+  const { pathId } = await params;
+  const body = await req.json().catch(() => ({}));
+  const { phaseNumber } = body;
+
+  // Validate phaseNumber is a positive integer.
+  if (!Number.isInteger(phaseNumber) || phaseNumber < 1) {
+    return Response.json({ error: "phaseNumber must be a positive integer" }, { status: 400 });
   }
 
   const path = await prisma.learningPath.findUnique({
@@ -56,7 +68,7 @@ export async function POST(
     return Response.json({ error: "Phase exceeds planned total" }, { status: 400 });
   }
 
-  // Idempotent — if already generated just return ok
+  // Idempotent — if already generated just return ok.
   if (path.lessons.some((l) => l.phaseNumber === phaseNumber)) {
     return Response.json({ ok: true });
   }
@@ -67,7 +79,6 @@ export async function POST(
 
   try {
     const { minLessons, maxLessons } = getPathStructure(path.level, path.hoursPerWeek);
-    // Pass all existing lesson headlines so the model doesn't repeat covered topics
     const coveredTopics = path.lessons.map((l) => l.headline);
 
     const model = genAI.getGenerativeModel({
@@ -107,7 +118,6 @@ export async function POST(
       })),
     });
 
-    // Append the new phase to rawJson so phaseThemes stays in sync on the dashboard
     const existing = path.rawJson as { skill: string; totalPhases: number; phases: unknown[] };
     await prisma.learningPath.update({
       where: { id: pathId },

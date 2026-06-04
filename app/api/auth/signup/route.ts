@@ -1,7 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { hashPassword, signToken, setAuthCookie } from "@/lib/auth";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  // 5 signups per IP per hour.
+  const ip = getClientIp(req);
+  const rl = rateLimit(`signup:${ip}`, 5, 60 * 60 * 1_000);
+  if (!rl.allowed) {
+    return Response.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   const { email, password, name } = await req.json().catch(() => ({}));
 
   if (!email || !password) {
@@ -12,16 +23,25 @@ export async function POST(req: Request) {
   }
 
   const normalized = String(email).trim().toLowerCase();
+
+  // Cap name to prevent oversized payloads being stored.
+  const safeName = name ? String(name).trim().slice(0, 100) : null;
+
   const existing = await prisma.user.findUnique({ where: { email: normalized } });
   if (existing) {
-    return Response.json({ error: "An account with this email already exists" }, { status: 409 });
+    // Don't reveal whether the email is registered — return a generic message
+    // so the endpoint cannot be used for account enumeration.
+    return Response.json(
+      { error: "Could not create account. If you already have one, try logging in." },
+      { status: 409 }
+    );
   }
 
   const user = await prisma.user.create({
     data: {
       email: normalized,
       password: await hashPassword(password),
-      name: name ? String(name).trim() : null,
+      name: safeName,
       streak: { create: {} },
     },
   });

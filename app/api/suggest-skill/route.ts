@@ -1,5 +1,6 @@
 import { genAI, CHAT_MODEL } from "@/lib/ai";
 import { getUser } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 const ANGLES = [
   "a practical technology, data, or AI skill",
@@ -12,9 +13,18 @@ const ANGLES = [
   "a science, history, or big-idea subject",
 ];
 
-export async function POST() {
+export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  // 20 suggestions per user per 24 hours.
+  const rl = rateLimit(`suggest:${user.id}`, 20, 24 * 60 * 60 * 1_000);
+  if (!rl.allowed) {
+    return Response.json(
+      { error: "Daily suggestion limit reached. Come back tomorrow." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
 
   const angle = ANGLES[Math.floor(Math.random() * ANGLES.length)];
 

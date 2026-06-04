@@ -7,6 +7,8 @@ import { Prisma, LessonType } from "@prisma/client";
 export const maxDuration = 60;
 
 const VALID_TYPES = new Set<string>(Object.values(LessonType));
+const VALID_LEVELS = new Set(["beginner", "intermediate", "advanced"]);
+const DAILY_PATH_LIMIT = 5;
 
 function coerceType(type: string): LessonType {
   return VALID_TYPES.has(type) ? (type as LessonType) : LessonType.concept_card;
@@ -18,7 +20,6 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
       return await fn();
     } catch (err: unknown) {
       const status = (err as { status?: number })?.status ?? 0;
-      // 429 = rate limited, 503 = temporary high demand — both are retriable
       const retriable = status === 429 || status === 503;
       if (retriable && attempt < retries) {
         await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
@@ -34,18 +35,49 @@ export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { skill, level, hoursPerWeek, goal, coveredTopics } = await req.json().catch(() => ({}));
-  if (!skill || !level || !hoursPerWeek) {
-    return Response.json({ error: "skill, level and hoursPerWeek are required" }, { status: 400 });
+  const body = await req.json().catch(() => ({}));
+  const { coveredTopics, goal } = body;
+
+  // Validate and sanitize inputs before they reach the AI prompt.
+  const rawLevel = String(body.level ?? "").toLowerCase();
+  if (!VALID_LEVELS.has(rawLevel)) {
+    return Response.json({ error: "level must be beginner, intermediate, or advanced" }, { status: 400 });
   }
+
+  const rawSkill = String(body.skill ?? "").trim().replace(/[\n\r\t]/g, " ").slice(0, 100);
+  if (!rawSkill) {
+    return Response.json({ error: "skill is required" }, { status: 400 });
+  }
+
+  const rawHours = Number(body.hoursPerWeek);
+  if (!Number.isInteger(rawHours) || rawHours < 1 || rawHours > 20) {
+    return Response.json({ error: "hoursPerWeek must be an integer between 1 and 20" }, { status: 400 });
+  }
+
+  const rawGoal = goal
+    ? String(goal).trim().replace(/[\n\r\t]/g, " ").slice(0, 500)
+    : undefined;
+
   const covered: string[] = Array.isArray(coveredTopics) ? coveredTopics : [];
 
+  // Per-user daily generation limit.
+  const todayStart = new Date(new Date().toISOString().split("T")[0]);
+  const pathsToday = await prisma.learningPath.count({
+    where: { userId: user.id, createdAt: { gte: todayStart } },
+  });
+  if (pathsToday >= DAILY_PATH_LIMIT) {
+    return Response.json(
+      { error: `Daily path limit reached (${DAILY_PATH_LIMIT}/day). Come back tomorrow.`, code: "rate_limited" },
+      { status: 429 }
+    );
+  }
+
   if (!process.env.GEMINI_API_KEY) {
-    return Response.json({ error: "Generation is not configured (missing GEMINI_API_KEY)" }, { status: 503 });
+    return Response.json({ error: "Generation is not available" }, { status: 503 });
   }
 
   try {
-    const { phaseCount, minLessons, maxLessons } = getPathStructure(String(level), Number(hoursPerWeek));
+    const { phaseCount, minLessons, maxLessons } = getPathStructure(rawLevel, rawHours);
 
     const model = genAI.getGenerativeModel({
       model: GEN_MODEL,
@@ -56,11 +88,9 @@ export async function POST(req: Request) {
       },
     });
 
-    // Generate Phase 1 only — subsequent phases are generated progressively
-    // as the user completes each phase, via POST /api/phases/[pathId]/generate.
     const phase1Raw = await withRetry(async () => {
       const result = await model.generateContent(
-        buildPhasePrompt(skill, level, Number(hoursPerWeek), goal, 1, phaseCount, minLessons, maxLessons, covered)
+        buildPhasePrompt(rawSkill, rawLevel, rawHours, rawGoal, 1, phaseCount, minLessons, maxLessons, covered)
       );
       return result.response.text();
     });
@@ -68,7 +98,7 @@ export async function POST(req: Request) {
     const phase1 = parsePhaseResponse(phase1Raw, 1);
 
     const parsed: GeneratedPath = {
-      skill: String(skill),
+      skill: rawSkill,
       totalPhases: phaseCount,
       phases: [phase1],
     };
@@ -76,10 +106,10 @@ export async function POST(req: Request) {
     const path = await prisma.learningPath.create({
       data: {
         userId: user.id,
-        skill: String(skill),
-        level: String(level),
-        hoursPerWeek: Number(hoursPerWeek),
-        goal: goal ? String(goal) : null,
+        skill: rawSkill,
+        level: rawLevel,
+        hoursPerWeek: rawHours,
+        goal: rawGoal ?? null,
         rawJson: parsed as unknown as Prisma.InputJsonValue,
         totalPhases: phaseCount,
         lessons: {
@@ -107,7 +137,7 @@ export async function POST(req: Request) {
         { status: 429 }
       );
     }
-    console.error("Gemini path generation failed:", err);
+    console.error("Path generation failed:", err);
     return Response.json({ error: "Generation failed, please try again" }, { status: 500 });
   }
 }

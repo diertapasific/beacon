@@ -1,7 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, signToken, setAuthCookie } from "@/lib/auth";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  // 10 attempts per IP per 15 minutes.
+  const ip = getClientIp(req);
+  const rl = rateLimit(`login:${ip}`, 10, 15 * 60 * 1_000);
+  if (!rl.allowed) {
+    return Response.json(
+      { error: "Too many login attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   const { email, password } = await req.json().catch(() => ({}));
 
   if (!email || !password) {

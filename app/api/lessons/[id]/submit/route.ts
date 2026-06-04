@@ -17,8 +17,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { answers } = await req.json().catch(() => ({ answers: [] }));
   const selected: string[] = Array.isArray(answers) ? answers : [];
 
-  const lesson = await prisma.lesson.findUnique({ where: { id } });
-  if (!lesson) return Response.json({ error: "Lesson not found" }, { status: 404 });
+  // Verify lesson exists AND belongs to the authenticated user's path (IDOR guard).
+  const lessonWithPath = await prisma.lesson.findUnique({
+    where: { id },
+    include: { path: { select: { userId: true } } },
+  });
+  if (!lessonWithPath || lessonWithPath.path.userId !== user.id) {
+    return Response.json({ error: "Lesson not found" }, { status: 404 });
+  }
+  const lesson = lessonWithPath;
 
   const norm = (s: unknown) => String(s ?? "").trim().toLowerCase();
 
@@ -208,9 +215,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     unlockedAchievements,
   });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : undefined;
-    console.error("[submit] unhandled error:", stack ?? msg);
-    return Response.json({ error: msg }, { status: 500 });
+    console.error("[submit] unhandled error:", err instanceof Error ? err.stack : err);
+    return Response.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

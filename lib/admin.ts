@@ -10,11 +10,21 @@ import type { User } from "@prisma/client";
  */
 export function isAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
-  const list = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
+  const raw = process.env.ADMIN_EMAILS ?? "";
+  if (!raw.trim()) {
+    console.warn("[admin] ADMIN_EMAILS is not set — admin access is disabled");
+    return false;
+  }
+  const list = raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   return list.includes(email.toLowerCase());
+}
+
+/** Masks an email for safe display: `di***@example.com` */
+function maskEmail(email: string): string {
+  const at = email.indexOf("@");
+  if (at < 0) return "***";
+  const visible = email.slice(0, Math.min(2, at));
+  return `${visible}***${email.slice(at)}`;
 }
 
 /** Returns the current user only if they are an admin, otherwise null. */
@@ -158,7 +168,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   const topLearners = topLearnerRows.map((u) => ({
     id: u.id,
     name: u.name,
-    email: u.email,
+    email: maskEmail(u.email),
     xp: u.totalXp,
     level: getLevelFromXP(u.totalXp),
   }));
@@ -214,7 +224,7 @@ export async function getAdminStats(): Promise<AdminStats> {
       id: f.id,
       category: f.category,
       message: f.message,
-      email: f.user?.email ?? null,
+      email: f.user?.email ? maskEmail(f.user.email) : null,
       name: f.user?.name ?? null,
       createdAt: f.createdAt.toISOString(),
     })),

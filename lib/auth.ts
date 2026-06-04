@@ -22,15 +22,18 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
 }
 
 export function signToken(userId: string): string {
-  return jwt.sign({ userId }, getSecret(), { expiresIn: "30d" });
+  return jwt.sign({ userId }, getSecret(), { expiresIn: "30d", algorithm: "HS256" });
 }
 
 export async function setAuthCookie(token: string): Promise<void> {
   const store = await cookies();
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    // Secure on production and all Vercel deployments (preview + prod are HTTPS).
+    secure: process.env.NODE_ENV === "production" || !!process.env.VERCEL,
+    // Strict prevents the cookie being sent on cross-site navigations,
+    // eliminating logout-CSRF and other cross-site request attacks.
+    sameSite: "strict",
     path: "/",
     maxAge: MAX_AGE,
   });
@@ -52,14 +55,16 @@ export async function getUser(): Promise<User | null> {
 
   let userId: string;
   try {
-    ({ userId } = jwt.verify(token, getSecret()) as { userId: string });
+    // Pin algorithm to prevent algorithm-confusion attacks (e.g. RS256→HS256).
+    const payload = jwt.verify(token, getSecret(), { algorithms: ["HS256"] }) as { userId?: unknown };
+    // Guard the claim type — a malformed-but-valid-sig token must not proceed.
+    if (!payload.userId || typeof payload.userId !== "string") return null;
+    userId = payload.userId;
   } catch {
-    // Only a genuinely missing/invalid/expired token counts as "logged out".
     return null;
   }
 
-  // DB/connectivity errors intentionally propagate. If we swallowed them as
-  // `null`, a valid session would look logged-out and the proxy would bounce
-  // /dashboard -> /auth/login -> /dashboard forever (an infinite redirect loop).
+  // DB/connectivity errors intentionally propagate. If swallowed as null, a
+  // valid session looks logged-out and triggers an infinite redirect loop.
   return prisma.user.findUnique({ where: { id: userId } });
 }
