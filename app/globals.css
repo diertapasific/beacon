@@ -56,7 +56,22 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Thin, unobtrusive scrollbar matching the design palette */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
 }
+
+/* Chrome / Safari / Edge */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink-faint); }
+
+/* Utility: hide scrollbar completely while keeping scroll functionality */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Hide the OS cursor on mouse devices — custom cursor takes over */
 @media (pointer: fine) {

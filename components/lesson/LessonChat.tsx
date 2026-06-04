@@ -163,7 +163,7 @@ export function LessonChat({
   );
 
   const messageList = (
-    <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+    <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-4 flex flex-col gap-3">
       {messages.length === 0 && !streaming && (
         <div className="flex-1 flex flex-col items-center justify-center text-center px-4 py-8">
           {exhausted ? (
