@@ -8,14 +8,18 @@ const COOKIE_NAME = "beacon_token";
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasToken = !!request.cookies.get(COOKIE_NAME)?.value;
+  const isAuthPage = pathname.startsWith("/auth/login") || pathname.startsWith("/auth/signup");
 
   if (!hasToken) {
+    // Auth pages are always reachable without a token — never redirect them.
+    if (isAuthPage) return NextResponse.next();
+
     // API routes → 401 JSON (don't redirect XHR callers to an HTML login page).
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Page routes → redirect to login preserving the intended destination.
+    // Protected page routes → redirect to login preserving the intended destination.
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     url.searchParams.set("next", pathname);
@@ -23,7 +27,7 @@ export function proxy(request: NextRequest) {
   }
 
   // Already authenticated — redirect away from auth pages.
-  if (pathname.startsWith("/auth/login") || pathname.startsWith("/auth/signup")) {
+  if (isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

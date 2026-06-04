@@ -150,7 +150,7 @@ export function OnboardingWizard() {
                     onKeyDown={(e) => e.key === "Enter" && canAdvance && go(1)}
                     placeholder="e.g. Machine Learning"
                     className="w-full h-16 rounded-xl border-2 border-line bg-cream px-5 text-lg font-medium
-                      text-ink placeholder:text-ink-faint shadow-hard-sm focus:outline-none focus:ring-2 focus:ring-clay"
+                      text-ink placeholder:text-ink-faint shadow-hard-sm focus:outline-none focus:border-clay"
                   />
                   <div className="mt-5">
                     <div className="flex items-center justify-between mb-2.5">
@@ -242,7 +242,7 @@ export function OnboardingWizard() {
                       rows={2}
                       placeholder="e.g. Ship a side project, pass an exam, switch careers…"
                       className="w-full rounded-xl border-2 border-line bg-cream px-4 py-3 text-ink
-                        placeholder:text-ink-faint resize-none focus:outline-none focus:ring-2 focus:ring-clay"
+                        placeholder:text-ink-faint resize-none focus:outline-none focus:border-clay"
                     />
                   </div>
                 </Step>
