@@ -1,28 +1,28 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChatCircle, X, PaperPlaneTilt } from "@phosphor-icons/react";
+import { ChatCircle, X, PaperPlaneTilt, ProhibitInset } from "@phosphor-icons/react";
+import { CHAT_DAILY_LIMIT } from "@/app/api/chat/route";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
-export interface LessonContext {
-  headline: string;
-  type: string;
-  coreIdea: string;
-  example: string;
-  realWorldUse: string;
-}
-
-export function LessonChat({ lessonContext }: { lessonContext: LessonContext }) {
+export function LessonChat({
+  lessonId,
+  lessonHeadline,
+}: {
+  lessonId: string;
+  lessonHeadline: string;
+}) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [remaining, setRemaining] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -31,21 +31,29 @@ export function LessonChat({ lessonContext }: { lessonContext: LessonContext }) 
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
 
+  // Fetch quota when the panel opens.
   useEffect(() => {
-    if (open) {
-      const t = setTimeout(() => inputRef.current?.focus(), 320);
-      return () => clearTimeout(t);
-    }
+    if (!open) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 320);
+    fetch("/api/chat")
+      .then((r) => r.json())
+      .then((d: { remaining?: number }) => {
+        if (typeof d.remaining === "number") setRemaining(d.remaining);
+      })
+      .catch(() => {});
+    return () => clearTimeout(t);
   }, [open]);
 
-  function close() {
+  const close = useCallback(() => {
     abortRef.current?.abort();
     setOpen(false);
-  }
+  }, []);
+
+  const exhausted = remaining !== null && remaining <= 0;
 
   async function send() {
     const text = input.trim();
-    if (!text || streaming) return;
+    if (!text || streaming || exhausted) return;
 
     const next: Message[] = [...messages, { role: "user", content: text }];
     setMessages(next);
@@ -59,9 +67,20 @@ export function LessonChat({ lessonContext }: { lessonContext: LessonContext }) 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next, lessonContext }),
+        body: JSON.stringify({ messages: next, lessonId }),
         signal: abortRef.current.signal,
       });
+
+      // Read quota header as soon as headers arrive (before stream completes).
+      const headerRemaining = res.headers.get("X-Chat-Remaining");
+      if (headerRemaining !== null) setRemaining(Number(headerRemaining));
+
+      if (res.status === 429) {
+        setRemaining(0);
+        setMessages((prev) => prev.slice(0, -1)); // remove the optimistic user message
+        setInput(text);
+        return;
+      }
 
       if (!res.ok || !res.body) {
         setMessages((prev) => [
@@ -95,6 +114,16 @@ export function LessonChat({ lessonContext }: { lessonContext: LessonContext }) 
       setStreamingContent("");
     }
   }
+
+  // Quota pill colour
+  const quotaColor =
+    remaining === null
+      ? "text-ink-faint"
+      : remaining <= 2
+      ? "text-berry"
+      : remaining <= 5
+      ? "text-clay-deep"
+      : "text-ink-faint";
 
   return (
     <>
@@ -154,8 +183,13 @@ export function LessonChat({ lessonContext }: { lessonContext: LessonContext }) 
                   Lesson tutor
                 </p>
                 <p className="mt-0.5 text-sm font-bold text-ink leading-snug truncate">
-                  {lessonContext.headline}
+                  {lessonHeadline}
                 </p>
+                {remaining !== null && (
+                  <p className={`mt-0.5 font-mono text-[10px] font-bold tabular-nums ${quotaColor}`}>
+                    {remaining}/{CHAT_DAILY_LIMIT} questions left today
+                  </p>
+                )}
               </div>
               <button
                 onClick={close}
@@ -172,13 +206,27 @@ export function LessonChat({ lessonContext }: { lessonContext: LessonContext }) 
             <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
               {messages.length === 0 && !streaming && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center px-4 py-8">
-                  <div className="w-12 h-12 rounded-full bg-sun-tint border-2 border-line grid place-items-center mb-3">
-                    <ChatCircle size={22} weight="fill" className="text-clay-deep" />
-                  </div>
-                  <p className="font-bold text-ink text-sm">Got a question?</p>
-                  <p className="mt-1 text-sm text-ink-faint leading-relaxed max-w-[30ch]">
-                    I have the full lesson context. Ask anything about this material.
-                  </p>
+                  {exhausted ? (
+                    <>
+                      <div className="w-12 h-12 rounded-full bg-berry-tint border-2 border-line grid place-items-center mb-3">
+                        <ProhibitInset size={22} weight="fill" className="text-berry" />
+                      </div>
+                      <p className="font-bold text-ink text-sm">Daily limit reached</p>
+                      <p className="mt-1 text-sm text-ink-faint leading-relaxed max-w-[30ch]">
+                        You&apos;ve used all {CHAT_DAILY_LIMIT} chat messages for today. Come back tomorrow.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 rounded-full bg-sun-tint border-2 border-line grid place-items-center mb-3">
+                        <ChatCircle size={22} weight="fill" className="text-clay-deep" />
+                      </div>
+                      <p className="font-bold text-ink text-sm">Got a question?</p>
+                      <p className="mt-1 text-sm text-ink-faint leading-relaxed max-w-[30ch]">
+                        I have the full lesson context. Ask anything about this material.
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -218,34 +266,42 @@ export function LessonChat({ lessonContext }: { lessonContext: LessonContext }) 
 
             {/* Input row */}
             <div className="shrink-0 px-4 pb-6 pt-3 border-t-2 border-line">
-              <div className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      send();
-                    }
-                  }}
-                  placeholder="Ask about this lesson…"
-                  disabled={streaming}
-                  className="flex-1 h-11 rounded-xl border-2 border-line bg-cream px-4 text-sm text-ink
-                    placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-clay
-                    disabled:opacity-50"
-                />
-                <button
-                  onClick={send}
-                  disabled={!input.trim() || streaming}
-                  className="shrink-0 w-11 h-11 rounded-xl bg-clay text-cream border-2 border-transparent
-                    shadow-hard-clay press-clay grid place-items-center
-                    disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none"
-                  aria-label="Send"
-                >
-                  <PaperPlaneTilt size={18} weight="fill" />
-                </button>
-              </div>
+              {exhausted ? (
+                <div className="flex items-center justify-center h-11 rounded-xl border-2 border-line bg-cream px-4">
+                  <p className="text-sm font-medium text-ink-faint">
+                    Daily limit reached — resets tomorrow
+                  </p>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void send();
+                      }
+                    }}
+                    placeholder="Ask about this lesson…"
+                    disabled={streaming}
+                    className="flex-1 h-11 rounded-xl border-2 border-line bg-cream px-4 text-sm text-ink
+                      placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-clay
+                      disabled:opacity-50"
+                  />
+                  <button
+                    onClick={() => void send()}
+                    disabled={!input.trim() || streaming}
+                    className="shrink-0 w-11 h-11 rounded-xl bg-clay text-cream border-2 border-transparent
+                      shadow-hard-clay press-clay grid place-items-center
+                      disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none"
+                    aria-label="Send"
+                  >
+                    <PaperPlaneTilt size={18} weight="fill" />
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

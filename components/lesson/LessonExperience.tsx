@@ -335,15 +335,7 @@ export function LessonExperience({
       </AnimatePresence>
 
       {phase !== "result" && (
-        <LessonChat
-          lessonContext={{
-            headline: lesson.headline,
-            type: lesson.type,
-            coreIdea: lesson.coreIdea,
-            example: lesson.example,
-            realWorldUse: lesson.realWorldUse,
-          }}
-        />
+        <LessonChat lessonId={lesson.id} lessonHeadline={lesson.headline} />
       )}
     </div>
   );
