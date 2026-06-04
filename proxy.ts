@@ -1,25 +1,29 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Next.js 16: Middleware is now "Proxy". This does OPTIMISTIC auth checks only
-// (cookie presence) for redirect UX — real verification happens in each page
-// via getUser(). See node_modules/next/dist/docs/.../16-proxy.md
+// Next.js 16: Middleware is now "Proxy". Optimistic auth gate (cookie presence
+// only) — real JWT verification happens per-handler via getUser().
 const COOKIE_NAME = "beacon_token";
-const PROTECTED = ["/dashboard", "/onboarding", "/lesson"];
-const AUTH_PAGES = ["/auth/login", "/auth/signup"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hasSession = request.cookies.has(COOKIE_NAME);
+  const hasToken = !!request.cookies.get(COOKIE_NAME)?.value;
 
-  if (PROTECTED.some((p) => pathname.startsWith(p)) && !hasSession) {
+  if (!hasToken) {
+    // API routes → 401 JSON (don't redirect XHR callers to an HTML login page).
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Page routes → redirect to login preserving the intended destination.
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (AUTH_PAGES.some((p) => pathname.startsWith(p)) && hasSession) {
+  // Already authenticated — redirect away from auth pages.
+  if (pathname.startsWith("/auth/login") || pathname.startsWith("/auth/signup")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
@@ -29,5 +33,17 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/onboarding/:path*", "/lesson/:path*", "/auth/:path*"],
+  matcher: [
+    // Protected pages
+    "/dashboard/:path*",
+    "/lesson/:path*",
+    "/profile/:path*",
+    "/paths/:path*",
+    "/onboarding/:path*",
+    // Auth pages (for redirect-if-logged-in)
+    "/auth/login",
+    "/auth/signup",
+    // All API routes except auth (login/signup/logout) and cron (CRON_SECRET auth)
+    "/api/((?!auth/|cron/).*)",
+  ],
 };
