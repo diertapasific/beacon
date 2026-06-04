@@ -72,6 +72,25 @@ export async function POST(req: Request) {
     );
   }
 
+  // Idempotency: if a path with the same skill+level was created by this user
+  // in the last 2 minutes, return the existing one. This prevents duplicates
+  // when the client retries after a network error that occurred after the
+  // server had already persisted the path (generation can take ~30–60 s).
+  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1_000);
+  const recentDuplicate = await prisma.learningPath.findFirst({
+    where: {
+      userId: user.id,
+      skill: rawSkill,
+      level: rawLevel,
+      createdAt: { gte: twoMinutesAgo },
+    },
+    select: { id: true },
+    orderBy: { createdAt: "desc" },
+  });
+  if (recentDuplicate) {
+    return Response.json({ pathId: recentDuplicate.id });
+  }
+
   if (!process.env.GEMINI_API_KEY) {
     return Response.json({ error: "Generation is not available" }, { status: 503 });
   }
